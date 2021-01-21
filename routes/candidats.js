@@ -7,7 +7,7 @@ const pool = require('../pool');
 const urlApiUsers = '/api/candidats/';
 
 router.get('/', (req, res) => {
-  pool.query('SELECT * FROM user', (err, results) => {
+  pool.query('SELECT * FROM user_fiche', (err, results) => {
     if (err) {
       res.status(500).json({
         error: err.message,
@@ -19,7 +19,7 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
-  pool.query('SELECT * FROM user WHERE id=?', req.params.id, (err, results) => {
+  pool.query('SELECT * FROM user_fiche WHERE id=?', req.params.id, (err, results) => {
     if (err) {
       res.status(500).json({
         error: err.message,
@@ -32,7 +32,7 @@ router.get('/:id', (req, res) => {
 
 router.put('/:id', (req, res) => {
   pool.query(`
-  UPDATE user SET ? 
+  UPDATE user_fiche SET ? 
   WHERE id=?
   `, [req.body, req.params.id], (err) => {
     if (err) {
@@ -47,7 +47,7 @@ router.put('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  pool.query('INSERT INTO user SET ?', [req.body], (err, results) => {
+  pool.query('INSERT INTO user_fiche SET ?', [req.body], (err, results) => {
     if (err) {
       return res.status(500).json({
         error: err.message,
@@ -71,7 +71,7 @@ router.post('/', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  pool.query('DELETE FROM user WHERE id=?', req.params.id, (err, results) => {
+  pool.query('DELETE FROM user_fiche WHERE id=?', req.params.id, (err, results) => {
     if (err) {
       return res.status(500).json({
         error: err.message,
