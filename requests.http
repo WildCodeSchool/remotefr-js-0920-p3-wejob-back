@@ -1,5 +1,23 @@
-### Get all users
+### Get all users (information from several tables)
 GET http://localhost:5000/api/candidats
 
-### Get all jobs
-GET http://localhost:5000/api/metiers
+### Get 1 user (information from several tables)
+### (id from user_fiche.id)
+GET http://localhost:5000/api/candidat/1
+
+### Delete 1 user (id from user_fiche.id)
+DELETE http://localhost:5000/api/candidat/2
+
+### Add a new user (email)
+POST http://localhost:5000/api/candidats
+{"email":"test-new-candidat@test.com"}
+
+### Add a new admin (email + password)
+POST http://localhost:5000/api/auth/register
+{"email":"test-admin@test.fr",
+"password":"12345"}
+
+### Login
+POST http://localhost:5000/api/auth/login
+{"email":"test-admin@test.fr",
+"password":"12345"}
