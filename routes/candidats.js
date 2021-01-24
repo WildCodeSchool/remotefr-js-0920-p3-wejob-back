@@ -98,11 +98,11 @@ router.put('/:id', async (req, res) => {
 
     //tested: ok
     const [emailUpdated] = await pool.query(`
-    // UPDATE user
-    // INNER JOIN user_fiche
-    // ON user.id=user_fiche.id
-    // SET user.email = ?
-    // WHERE user_fiche.id = ?`, [email, candidatToUpdateId]);
+    UPDATE user
+    INNER JOIN user_fiche
+    ON user.id=user_fiche.id
+    SET user.email = ?
+    WHERE user_fiche.id = ?`, [email, candidatToUpdateId]);
 
     //tested: ok
     // we don't modify create_at :
@@ -113,37 +113,38 @@ router.put('/:id', async (req, res) => {
 
     //tested: ok
     const [activityAreaUpdated] = await pool.query(`
-    // UPDATE user_fiche
-    // SET user_fiche.activity_area_id = ? 
-    // WHERE user_fiche.id = ?`, [activity_area, candidatToUpdateId]);
+     UPDATE user_fiche
+     SET user_fiche.activity_area_id = ? 
+     WHERE user_fiche.id = ?`, [activity_area, candidatToUpdateId]);
 
 
-    // const [jobUpdated] = await pool.query(`
-    // UPDATE job
-    // LEFT JOIN user_job
-    // ON job.id = user_job.job_id
-    // LEFT JOIN user_fiche
-    // ON user_job.user_id=user_fiche.id
-    // SET job.name = ? 
-    // WHERE user_fiche.id = ?`, [name_job, candidatToUpdateId]);
-
-    // const [languageUpdated] = await pool.query(`
-    // UPDATE language
-    // LEFT JOIN user_language
-    // ON language.id = user_language.language_id
-    // LEFT JOIN user_fiche
-    // ON user_language.user_id=user_fiche.id
-    // SET language.language = ? 
-    // WHERE user_fiche.id = ?`, [name_job, candidatToUpdateId]);
-
-    // const [sectorOfActivityUpdated] = await pool.query(`
-    // UPDATE sector_of_activity
-    // LEFT JOIN user_sector_of_activity
-    // ON sector_of_activity.id = user_sector_of_activity.sector_of_activity_id
-    // LEFT JOIN user_fiche
-    // ON user_sector_of_activity.id=user_fiche.id
-    // SET sector_of_activity.name = ? 
-    // WHERE user_fiche.id = ?`, [name_sector, candidatToUpdateId]);
+    /*   ---------------  need POST, DELETE and PUT for job, sector_of_activity and language ?  --------------- 
+        const [jobUpdated] = await pool.query(`
+        UPDATE job
+        LEFT JOIN user_job
+        ON job.id = user_job.job_id
+        LEFT JOIN user_fiche
+        ON user_job.user_id=user_fiche.id
+        SET job.name = ? 
+        WHERE user_fiche.id = ?`, [name_job, candidatToUpdateId]);
+    
+        const [languageUpdated] = await pool.query(`
+        UPDATE language
+        LEFT JOIN user_language
+        ON language.id = user_language.language_id
+        LEFT JOIN user_fiche
+        ON user_language.user_id=user_fiche.id
+        SET language.language = ? 
+        WHERE user_fiche.id = ?`, [name_job, candidatToUpdateId]);
+    
+        const [sectorOfActivityUpdated] = await pool.query(`
+        UPDATE sector_of_activity
+        LEFT JOIN user_sector_of_activity
+        ON sector_of_activity.id = user_sector_of_activity.sector_of_activity_id
+        LEFT JOIN user_fiche
+        ON user_sector_of_activity.id=user_fiche.id
+        SET sector_of_activity.name = ? 
+        WHERE user_fiche.id = ?`, [name_sector, candidatToUpdateId]);*/
 
     const updatedProfileCandidat = {
       email: emailUpdated,
