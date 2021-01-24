@@ -25,32 +25,20 @@ const checkAuthFields = (req, res, next) => {
   return next();
 }
 
-router.post('/register', checkAuthFields, (req, res) => {
-  const { email, password } = req.body;
-  return bcrypt.hash(password, 14, (errHash, hash) => {
-    if (errHash) {
-      return res.status(500).json({
-        error: 'Une erreur est apparue avec votre mot de passe.',
-      });
-    }
-    console.log(req.body.email);
-    pool.query('INSERT INTO user (email, password) VALUES (?, ?)', [req.body.email, hash], (errInsert, status) => {
-      if (errInsert) {
-        console.log(errInsert);
-        if (errInsert.code === 'ER_DUP_ENTRY') {
-          return res.status(409).json({
-            error: 'Compte déjà existant avec cette adresse e-mail.'
-          });
-        }
-        return res.status(500).json({
-          error: 'Impossible de créer le compte.',
-        });
-      };
-      return res.status(201).json({
-        id: status.insertId
-      });
+// tested: OK
+router.post('/register', checkAuthFields, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const passwordHashed = await bcrypt.hash(password, 14);
+    await pool.query('INSERT INTO user (email, password, isAdmin) VALUES (?, ?, ?)', [email, passwordHashed, 1]);
+    const newAdmin = await pool.query(`SELECT id, email FROM user WHERE email=?`, [email]);
+    return res.status(201).json(newAdmin[0]);
+
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
     });
-  });
+  }
 });
 
 router.post('/login', checkAuthFields, (req, res) => {
