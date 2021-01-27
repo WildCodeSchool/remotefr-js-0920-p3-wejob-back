@@ -1,4 +1,8 @@
 const express = require('express');
+const randtoken = require('rand-token');
+const sendToken = require('../services/send-token');
+const hashPassword = require('./hash-password');
+const cors = require('cors');
 
 const router = express.Router();
 
@@ -6,10 +10,17 @@ const pool = require('../pool');
 
 const urlApiUsers = '/api/candidats/';
 
+router.use(cors({
+  origin: process.env.FRONT_URL,
+  credentials: true,
+  optionsSuccessStatus: 200,
+})
+);
+
 router.get('/', async (req, res) => {
   try {
     const [fiches] = await pool.query(`
-    SELECT id, lastname, firstname, description, picture, availability, mobility, isCheck
+    SELECT id, civility, lastname, firstname, description, picture, availability, mobility, isCheck
     FROM user_fiche`);
     const [jobs] = await pool.query(`
     SELECT j.id AS id_job, j.name AS name_job, uj.user_id AS user_id FROM job j JOIN user_job uj ON uj.job_id=j.id`);
@@ -38,10 +49,30 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    await pool.query('INSERT INTO user (email) VALUES (?)', [req.body.email]);
+    const token = randtoken.generate(32);
+    await pool.query('INSERT INTO user (email, token) VALUES (?, ?)', [req.body.email, token]);
     const newUser = await pool.query(`SELECT id, email FROM user WHERE email=?`, [req.body.email]);
+    await sendToken(req.body.email, token);
     return res.status(201).json(newUser[0]);
 
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
+router.post('/update-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const hashedPassword = await hashPassword(password);
+    const [status] = await pool.query('UPDATE user SET password=?, token=NULL WHERE token=?', [hashedPassword, token]);
+    if (status.affectedRows === 0) {
+      return res.status(401).json({
+        error: 'Ce lien a expiré.',
+      });
+    }
+    return res.sendStatus(204);
   } catch (error) {
     return res.status(500).json({
       error: error.message,
@@ -65,15 +96,15 @@ router.get('/:id', async (req, res) => {
   try {
     const candidatId = req.params.id;
     const [fiche] = await pool.query(`
-    SELECT id, lastname, firstname, description, diploma, cv, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
+    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
     FROM user_fiche WHERE id = ?`, candidatId);
-    if (fiche.length === 0) {
+    if (!fiche) {
       return res.sendStatus(404);
     }
-    const [jobs] = await pool.query(`
+    const jobs = await pool.query(`
     SELECT j.id AS id_job, j.name AS name_job, uj.user_id AS user_id FROM job j JOIN user_job uj ON uj.job_id=j.id WHERE uj.user_id = ?`, candidatId);
-    const [language] = await pool.query(`SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id WHERE ul.user_id = ?`, candidatId);
-    const [sectors] = await pool.query(`SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id WHERE us.user_id = ?`, candidatId);
+    const language = await pool.query(`SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id WHERE ul.user_id = ?`, candidatId);
+    const sectors = await pool.query(`SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id WHERE us.user_id = ?`, candidatId);
     const profileCandidat = {
       fiche: fiche,
       job: jobs,
@@ -94,7 +125,7 @@ router.put('/:id', async (req, res) => {
     const candidatToUpdateId = req.params.id;
     // the reference id is "user_fiche.id"
 
-    const { email, lastname, firstname, description, diploma, cv, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, activity_area, name_sector, name_job } = req.body;
+    const { email, civility, lastname, firstname, description, diploma, cv1, cv2, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, activity_area, name_sector, name_job } = req.body;
 
     //tested: ok
     const [emailUpdated] = await pool.query(`
@@ -105,20 +136,17 @@ router.put('/:id', async (req, res) => {
     WHERE user_fiche.id = ?`, [email, candidatToUpdateId]);
 
     //tested: ok
-    // we don't modify create_at :
     const [userFicheUpdated] = await pool.query(`
     UPDATE user_fiche
-    SET lastname="?", firstname="?", description="?", diploma="?", cv="?", linkedin="?", youtube="?", picture="?", availability="?", mobility="?", years_of_experiment="?", isCheck="?", update_at="?", isOpen_to_formation="?"
-    WHERE id = ?`, [lastname, firstname, description, diploma, cv, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, candidatToUpdateId]);
-
-    //tested: ok
-    const [activityAreaUpdated] = await pool.query(`
-     UPDATE user_fiche
-     SET user_fiche.activity_area_id = ? 
-     WHERE user_fiche.id = ?`, [activity_area, candidatToUpdateId]);
+    SET civility="?", lastname="?", firstname="?", description="?", diploma="?", cv1="?", cv2="?", job="?" linkedin="?", youtube="?", picture="?", 
+    availability="?", mobility="?", years_of_experiment="?", isCheck="?", update_at="?", isOpen_to_formation="?"
+    WHERE id = ?`, [civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, candidatToUpdateId]);
 
 
     /*   ---------------  need POST, DELETE and PUT for job, sector_of_activity and language ?  --------------- 
+    job TEXT dans user_fiche et virer la table
+
+
         const [jobUpdated] = await pool.query(`
         UPDATE job
         LEFT JOIN user_job
