@@ -25,7 +25,6 @@ const checkAuthFields = (req, res, next) => {
   return next();
 }
 
-// tested: OK
 router.post('/register', checkAuthFields, async (req, res) => {
   try {
     const { email, password } = req.body;
