@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 
 const router = express.Router();
 
@@ -8,6 +9,13 @@ const privateKey = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken');
 
 const bcrypt = require('bcryptjs');
+
+router.use(cors({
+  origin: process.env.FRONT_URL,
+  credentials: true,
+  optionsSuccessStatus: 200,
+})
+);
 
 const checkAuthFields = (req, res, next) => {
   const { email, password } = req.body;
