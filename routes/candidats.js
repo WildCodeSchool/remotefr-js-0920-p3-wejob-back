@@ -8,8 +8,6 @@ const router = express.Router();
 
 const pool = require('../pool');
 
-const urlApiUsers = '/api/candidats/';
-
 router.use(cors({
   origin: process.env.FRONT_URL,
   credentials: true,
