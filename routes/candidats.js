@@ -123,66 +123,32 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const candidatToUpdateId = req.params.id;
-    // the reference id is "user_fiche.id"
+    const { email, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, name_sector, name_job } = req.body;
 
-    const { email, civility, lastname, firstname, description, diploma, cv1, cv2, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, activity_area, name_sector, name_job } = req.body;
-
-    //tested: ok
-    const [emailUpdated] = await pool.query(`
+    await pool.query(`
     UPDATE user
     INNER JOIN user_fiche
     ON user.id=user_fiche.id
     SET user.email = ?
     WHERE user_fiche.id = ?`, [email, candidatToUpdateId]);
 
-    //tested: ok
-    const [userFicheUpdated] = await pool.query(`
+    await pool.query(`
     UPDATE user_fiche
-    SET civility="?", lastname="?", firstname="?", description="?", diploma="?", cv1="?", cv2="?", job="?" linkedin="?", youtube="?", picture="?", 
-    availability="?", mobility="?", years_of_experiment="?", isCheck="?", update_at="?", isOpen_to_formation="?"
+    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?, 
+    availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`, [civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, candidatToUpdateId]);
 
+    const insertedLanguage = req.body.language;
+    await pool.query(`DELETE FROM user_language WHERE user_id=?`, [candidatToUpdateId]);
+    const insertedLangValues = insertedLanguage.map(langue => [candidatToUpdateId, langue.id]);
+    await pool.query(`INSERT INTO user_language(user_id, language_id) VALUES ?`, [insertedLangValues]);
 
-    /*   ---------------  need POST, DELETE and PUT for job, sector_of_activity and language ?  --------------- 
-    job TEXT dans user_fiche et virer la table
+    const insertedSectors = req.body.sector_of_activity;
+    await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [candidatToUpdateId]);
+    const insertedSectorValues = insertedSectors.map(sector => [candidatToUpdateId, sector.id]);
+    await pool.query(`INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`, [insertedSectorValues]);
 
-
-        const [jobUpdated] = await pool.query(`
-        UPDATE job
-        LEFT JOIN user_job
-        ON job.id = user_job.job_id
-        LEFT JOIN user_fiche
-        ON user_job.user_id=user_fiche.id
-        SET job.name = ? 
-        WHERE user_fiche.id = ?`, [name_job, candidatToUpdateId]);
-    
-        const [languageUpdated] = await pool.query(`
-        UPDATE language
-        LEFT JOIN user_language
-        ON language.id = user_language.language_id
-        LEFT JOIN user_fiche
-        ON user_language.user_id=user_fiche.id
-        SET language.language = ? 
-        WHERE user_fiche.id = ?`, [name_job, candidatToUpdateId]);
-    
-        const [sectorOfActivityUpdated] = await pool.query(`
-        UPDATE sector_of_activity
-        LEFT JOIN user_sector_of_activity
-        ON sector_of_activity.id = user_sector_of_activity.sector_of_activity_id
-        LEFT JOIN user_fiche
-        ON user_sector_of_activity.id=user_fiche.id
-        SET sector_of_activity.name = ? 
-        WHERE user_fiche.id = ?`, [name_sector, candidatToUpdateId]);*/
-
-    const updatedProfileCandidat = {
-      email: emailUpdated,
-      fiche: userFicheUpdated,
-      activity_area: activityAreaUpdated,
-      // job: jobUpdated,
-      // language: languageUpdated,
-      // sector_of_activity: sectorOfActivityUpdated,
-    }
-    return res.status(204).json(updatedProfileCandidat);
+    return res.status(204).json(candidatToUpdateId);
 
   } catch (error) {
     return res.status(500).json({
