@@ -45,10 +45,8 @@ router.use(
 router.get('/', async (req, res) => {
   try {
     const [fiches] = await pool.query(`
-    SELECT id, civility, lastname, firstname, description, picture, availability, mobility, isCheck
+    SELECT id, civility, lastname, firstname, job, description, picture, availability, mobility, isCheck
     FROM user_fiche`);
-    const [jobs] = await pool.query(`
-    SELECT j.id AS id_job, j.name AS name_job, uj.user_id AS user_id FROM job j JOIN user_job uj ON uj.job_id=j.id`);
     const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id`,
     );
@@ -57,12 +55,10 @@ router.get('/', async (req, res) => {
     );
 
     const fichesCandidats = fiches.map((f) => {
-      const jobToUSer = jobs.filter((j) => j.user_id === f.id);
       const langToUSer = language.filter((l) => l.user_id === f.id);
       const sectorToUSer = sectors.filter((s) => s.user_id === f.id);
       return {
         ...f,
-        job: jobToUSer,
         language: langToUSer,
         sector_of_activity: sectorToUSer,
       };
@@ -150,18 +146,13 @@ router.get('/:id', async (req, res) => {
     const candidatId = req.params.id;
     const [fiche] = await pool.query(
       `
-    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
+    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
     FROM user_fiche WHERE id = ?`,
       candidatId,
     );
     if (!fiche) {
       return res.sendStatus(404);
     }
-    const jobs = await pool.query(
-      `
-    SELECT j.id AS id_job, j.name AS name_job, uj.user_id AS user_id FROM job j JOIN user_job uj ON uj.job_id=j.id WHERE uj.user_id = ?`,
-      candidatId,
-    );
     const language = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id WHERE ul.user_id = ?`,
       candidatId,
@@ -172,7 +163,6 @@ router.get('/:id', async (req, res) => {
     );
     const profileCandidat = {
       fiche: fiche,
-      job: jobs,
       language: language,
       sector_of_activity: sectors,
     };
