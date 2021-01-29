@@ -7,7 +7,6 @@ const randtoken = require('rand-token');
 const slug = require('slug');
 const path = require('path');
 const multer = require('multer');
-const cors = require('cors');
 const sendToken = require('../services/send-token');
 const hashPassword = require('./hash-password');
 
@@ -34,14 +33,10 @@ const upload = multer({
   storage: storage,
 });
 
-router.use(
-  cors({
-    origin: process.env.FRONT_URL,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  }),
-);
-
+/**
+ * si cookie.isAdmin true retourner toute la liste si false 401
+ * sinon pas de cookie toute la liste isCheck true
+ */
 router.get('/', async (req, res) => {
   try {
     const [fiches] = await pool.query(`
@@ -71,27 +66,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * uniquemetn si cookie present et isAdmin true sinon 401
+ */
 router.post('/', async (req, res) => {
   try {
     const token = randtoken.generate(32);
-    await pool.query('INSERT INTO user (email, token) VALUES (?, ?)', [
-      req.body.email,
-      token,
-    ]);
-    const newUser = await pool.query(
-      `SELECT id, email FROM user WHERE email=?`,
-      [req.body.email],
+    const userAdd = await pool.query(
+      'INSERT INTO user (email, token) VALUES (?, ?)',
+      [req.body.email, token],
     );
+    // const newUser = await pool.query(
+    //   `SELECT id, email FROM user WHERE email=?`,
+    //   [req.body.email],
+    // );
     await sendToken(req.body.email, token);
-    return res.status(201).json(newUser[0]);
+    return res.status(201).json({ id: userAdd[0].insertId });
   } catch (error) {
     return res.status(500).json({
       error: error.message,
     });
   }
 });
-
-// john_doe_cv1
 
 router.post(
   '/file',
@@ -130,6 +126,9 @@ router.post('/update-password', async (req, res) => {
   }
 });
 
+/**
+ * uniquemetn si cookie present et isAdmin true sinon 401
+ */
 router.delete('/:id', (req, res) => {
   try {
     pool.query('DELETE FROM user_fiche WHERE id=?', req.params.id);
@@ -141,6 +140,10 @@ router.delete('/:id', (req, res) => {
   }
 });
 
+/**
+ * uniquement si cookie[wejobjwt] present
+ * sinon cookie recognizeRecruiter present sinon 401
+ */
 router.get('/:id', async (req, res) => {
   try {
     const candidatId = req.params.id;
@@ -173,7 +176,11 @@ router.get('/:id', async (req, res) => {
     });
   }
 });
-
+/**
+ * uniquemetn si cookie present et isAdmin true pour le champs isCheck
+ * si isAdmin false tout sauf isCheck
+ * sinon 401
+ */
 router.put('/:id', async (req, res) => {
   try {
     const candidatToUpdateId = req.params.id;
