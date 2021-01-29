@@ -1,6 +1,5 @@
 /* eslint-disable no-useless-escape */
 const express = require('express');
-const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -8,14 +7,6 @@ const router = express.Router();
 const pool = require('../pool');
 
 const privateKey = process.env.JWT_SECRET;
-
-router.use(
-  cors({
-    origin: process.env.FRONT_URL,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  }),
-);
 
 const checkAuthFields = (req, res, next) => {
   const { email, password } = req.body;
