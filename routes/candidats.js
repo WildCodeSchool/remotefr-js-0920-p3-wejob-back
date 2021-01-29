@@ -4,7 +4,7 @@
 /* eslint-disable object-shorthand */
 const express = require('express');
 const randtoken = require('rand-token');
-
+const slug = require('slug');
 const path = require('path');
 const multer = require('multer');
 const cors = require('cors');
@@ -20,10 +20,19 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname);
+    const ext = file.originalname.split('.');
+    let ch = slug(
+      `${req.body.lastname} ${req.body.firstname} ${file.fieldname}`,
+      '_',
+    );
+    ch += `.${ext[ext.length - 1]}`;
+    cb(null, ch);
   },
 });
-const upload = multer({ storage: storage });
+
+const upload = multer({
+  storage: storage,
+});
 
 router.use(
   cors({
@@ -85,6 +94,8 @@ router.post('/', async (req, res) => {
     });
   }
 });
+
+// john_doe_cv1
 
 router.post(
   '/file',
