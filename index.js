@@ -1,13 +1,27 @@
 const express = require('express');
-const { port } = require('./config');
+const dotenv = require('dotenv');
+const cors = require('cors');
 
+dotenv.config();
+
+const port = process.env.PORT || 5000;
 const app = express();
+const api = require('./routes');
 
-app.get('/', (req, res) => res.send('Express server is up and running!'));
+app.use(express.json());
+
+app.use(cors({
+  origin: process.env.FRONT_URL,
+  credentials: true,
+  optionsSuccessStatus: 200,
+}));
+
+app.use('/api', api);
 
 app.listen(port, (err) => {
   if (err) {
     console.error(err);
+    process.exit(1);
   } else {
     console.log(`Express server listening on ${port}`);
   }
