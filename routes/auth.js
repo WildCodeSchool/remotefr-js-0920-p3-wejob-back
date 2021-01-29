@@ -81,15 +81,8 @@ router.post('/login', checkAuthFields, async (req, res) => {
   }
 });
 
-const parseCookie = (cookie) => cookie.split('; ')
-  .reduce((carry, kv) => {
-    const [k, v] = kv.split('=');
-    return { ...carry, [k]: v };
-  }, {});
-
 const checkJwtMw = async (req, res, next) => {
-  const { cookie } = req.headers;
-  const { token } = parseCookie(cookie);
+  const { token } = req.cookies;
   if (!token) return res.sendStatus(401);
   try {
     const { iat, exp, ...decoded } = await jwt.verify(token, privateKey);
