@@ -48,47 +48,66 @@ router.post('/register', checkAuthFields, async (req, res) => {
   }
 });
 
-router.post('/login', checkAuthFields, (req, res) => {
+router.post('/login', checkAuthFields, async (req, res) => {
   const { email, password } = req.body;
   const sql = 'SELECT id, password hash FROM user WHERE BINARY email = BINARY ?';
-  pool.query(sql, [email], (err, users) => {
-    if (users.length === 0) {
+  try {
+    const [users] = await pool.query(sql, [email]); // pool.query() renvoie un tableau [rows, fields] (fields = infos sur les colonnes)
+    const [user] = users;
+    // pas de user => 401
+    if (!user) {
       return res.status(401).json({
         error: 'Cet e-mail n est pas reconnu.'
       });
     }
-    const user = users[0];
     // comparer le mdp en clair avec le mdp haché venant de la BDD
-    bcrypt.compare(password, user.hash, (errBcrypt, passwordsMatch) => {
-      if (errBcrypt) {
-        return res.status(500).json({ error: 'Mot de passe non reconnu.' })
-      }
-      if (!passwordsMatch) {
-        return res.status(401).json({
-          error: 'Mauvais e-mail et/ou mot de passe.'
-        })
-      }
-      // générer un JWT propre à cet utilisateur (contenant l'id de l'utilisateur)
-      jwt.sign({ id: user.id }, privateKey, (errToken, token) => {
-        if (errToken) {
-          return res.status(500).json({ error: 'impossible de générer le token.' })
-        }
-        res.cookie('token', token, {
-          httpOnly: true
-        });
-        res.json({ id: user.id })
+    const passwordsMatch = await bcrypt.compare(password, user.hash);
+    if (!passwordsMatch) {
+      return res.status(401).json({
+        error: 'Mauvais e-mail et/ou mot de passe.'
       })
-    })
-
-    if (err) {
-      res.status(500).json({
-        error: err.message,
-      });
-    } else {
-      res.status(200);
     }
+    // générer un JWT propre à cet utilisateur (contenant l'id de l'utilisateur)
+    const token = await jwt.sign({ id: user.id }, privateKey);
+    res.cookie('token', token, {
+      httpOnly: true
+    });
+    res.json({ id: user.id });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+});
 
-  })
+const parseCookie = (cookie) => cookie.split('; ')
+  .reduce((carry, kv) => {
+    const [k, v] = kv.split('=');
+    return { ...carry, [k]: v };
+  }, {});
+
+const checkJwtMw = async (req, res, next) => {
+  const { cookie } = req.headers;
+  const { token } = parseCookie(cookie);
+  if (!token) return res.sendStatus(401);
+  try {
+    const { iat, exp, ...decoded } = await jwt.verify(token, privateKey);
+    req.user = decoded;
+    return next();
+  } catch (err) {
+    console.error(err);
+    return res.sendStatus(401);
+  }
+}
+
+router.get('/check', checkJwtMw, async (req, res) => {
+  res.send(req.user);
+});
+
+router.get('/info', checkJwtMw, async (req, res) => {
+  const [[user]] = await pool.query('SELECT id, email FROM user WHERE id = ?', [req.user.id]);
+  res.send(user);
 });
 
 module.exports = router;

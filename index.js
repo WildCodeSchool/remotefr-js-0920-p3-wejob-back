@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const cors = require('cors');
 
 dotenv.config();
 
@@ -9,13 +10,18 @@ const api = require('./routes');
 
 app.use(express.json());
 
+app.use(cors({
+  origin: process.env.FRONT_URL,
+  credentials: true,
+  optionsSuccessStatus: 200,
+}));
+
 app.use('/api', api);
 
 app.listen(port, (err) => {
   if (err) {
-    res.status(500).json({
-      error: err.message,
-    });
+    console.error(err);
+    process.exit(1);
   } else {
     console.log(`Express server listening on ${port}`);
   }
