@@ -6,12 +6,14 @@ const express = require('express');
 const randtoken = require('rand-token');
 const slug = require('slug');
 const path = require('path');
+const fs = require('fs');
+const util = require('util');
 const multer = require('multer');
 const sendToken = require('../services/send-token');
 const hashPassword = require('./hash-password');
 
 const router = express.Router();
-
+const removeFile = util.promisify(fs.rm);
 const pool = require('../pool');
 
 const storage = multer.diskStorage({
@@ -129,9 +131,26 @@ router.post('/update-password', async (req, res) => {
 /**
  * uniquemetn si cookie present et isAdmin true sinon 401
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    pool.query('DELETE FROM user_fiche WHERE id=?', req.params.id);
+    const [
+      userInfo,
+      userFields,
+    ] = await pool.query(
+      'SELECT user_id, cv1, cv2, picture FROM user_fiche WHERE user_id =?',
+      [req.params.id],
+    );
+    const { cv1, cv2, picture, user_id } = userInfo[0];
+    if (cv1) {
+      await removeFile(path.join(process.cwd(), cv1.split('uploads/')[1]));
+    }
+    if (cv2) {
+      await removeFile(path.join(process.cwd(), cv2.split('uploads/')[1]));
+    }
+    if (picture) {
+      await removeFile(path.join(process.cwd(), picture.split('uploads/')[1]));
+    }
+    // await pool.query('DELETE FROM user WHERE id=?', [user_id]);
     return res.sendStatus(204);
   } catch (error) {
     return res.status(500).json({
@@ -150,22 +169,22 @@ router.get('/:id', async (req, res) => {
     const [fiche] = await pool.query(
       `
     SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
-    FROM user_fiche WHERE id = ?`,
+    FROM user_fiche WHERE user_id = ?`,
       candidatId,
     );
-    if (!fiche) {
+    if (fiche.length === 0) {
       return res.sendStatus(404);
     }
-    const language = await pool.query(
+    const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id WHERE ul.user_id = ?`,
       candidatId,
     );
-    const sectors = await pool.query(
+    const [sectors] = await pool.query(
       `SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id WHERE us.user_id = ?`,
       candidatId,
     );
     const profileCandidat = {
-      fiche: fiche,
+      ...fiche,
       language: language,
       sector_of_activity: sectors,
     };
@@ -203,8 +222,6 @@ router.put('/:id', async (req, res) => {
       isCheck,
       update_at,
       isOpen_to_formation,
-      name_sector,
-      name_job,
     } = req.body;
 
     await pool.query(
