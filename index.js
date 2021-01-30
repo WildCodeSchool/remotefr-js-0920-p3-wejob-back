@@ -9,6 +9,8 @@ const port = process.env.PORT || 5000;
 const app = express();
 const api = require('./routes');
 
+app.use(express.static('public'));
+
 app.use(cookieParser());
 
 app.use(express.json());
