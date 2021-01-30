@@ -8,14 +8,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const pool = require('../pool');
 
-router.use(
-  cors({
-    origin: process.env.FRONT_URL,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  }),
-);
-
 const checkAuthFields = (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
