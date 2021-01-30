@@ -41,7 +41,7 @@ Content-Type: application/json
 POST http://localhost:5000/api/candidats
 Content-Type: application/json
 
-{"email":"test-new-candidat@test.com"}
+{"email":"new-candidat-2@test.com"}
 
 ### Add a new admin (email + password)
 POST http://localhost:5000/api/auth/register
