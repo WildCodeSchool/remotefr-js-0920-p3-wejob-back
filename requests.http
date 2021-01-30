@@ -39,14 +39,26 @@ Content-Type: application/json
 
 ### Add a new user (email)
 POST http://localhost:5000/api/candidats
+Content-Type: application/json
+
 {"email":"test-new-candidat@test.com"}
 
 ### Add a new admin (email + password)
 POST http://localhost:5000/api/auth/register
-{"email":"test-admin@test.fr":"",
+Content-Type: application/json
+
+{"email":"test-admin@test.fr",
 "password":"12345"}
+
+### Add a new recruiter
+POST http://localhost:5000/api/recruteurs
+Content-Type: application/json
+
+{"email":"test-recruiter@test.fr",
+"name":"recruteur test",
+"phone":"1234567890"}
 
 ### Login
 POST http://localhost:5000/api/auth/login
-{"email":"test-admin@test.fr":"",
+{"email":"test-admin@test.fr",
 "password":"12345"}
