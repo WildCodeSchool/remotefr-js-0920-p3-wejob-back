@@ -10,13 +10,6 @@ const jwt = require('jsonwebtoken');
 
 const bcrypt = require('bcryptjs');
 
-router.use(cors({
-  origin: process.env.FRONT_URL,
-  credentials: true,
-  optionsSuccessStatus: 200,
-})
-);
-
 const checkAuthFields = (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -81,6 +74,7 @@ router.post('/login', checkAuthFields, async (req, res) => {
   }
 });
 
+
 const parseCookie = (cookie) => cookie.split('; ')
   .reduce((carry, kv) => {
     const [k, v] = kv.split('=');
@@ -100,6 +94,18 @@ const checkJwtMw = async (req, res, next) => {
     return res.sendStatus(401);
   }
 }
+
+router.post('/logout', parseCookie, async (req, res) => {
+  try {
+    cookies.set('token', { expires: Date.now() });
+    return sendStatus(200);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+});
 
 router.get('/check', checkJwtMw, async (req, res) => {
   res.send(req.user);
