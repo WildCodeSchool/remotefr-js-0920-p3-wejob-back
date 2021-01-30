@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>We-Job - Visite recruteur</title>
+  <style>
+    @media only screen and (min-width:1px) and (max-width:600px) {
+      body{
+      margin:10px;      
+    }
+     .w100{
+       width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" class="w100">
+  <tr>
+    <td align="center" class="w100">
+      <font face="Arial, sans-serif" color="#ababab" size="2">{{name}} | {{email}} | {{phone}}</font>
+    </td>
+  </tr>   
+  <tr>
+    <td align="center" class="w100">
+    <table width="600" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" class="w100">
+      <tr><td height="89" align="left">
+        <a href="{{adminLink}}" target="_blank"><font face="Arial, sans-serif" color="#007170" size="3"><b><img src="{{publicURL}}/img-email/we-job_logo.jpg" width="158" height="89" alt="We-Job"/></b></font></a>
+      </td>
+    </tr>
+    </table>
+  </td>
+  </tr>
+  <tr>
+  <td align="center" class="w100">
+    <table width="600" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" class="w100">
+      <tr>
+        <td class="w100" bgcolor="#007170" height="70" align="center">
+        <font face="Arial, sans-serif" color="#fefefe" size="5">Visite recruteur</font>
+      </td>
+      </tr>
+      <tr>
+        <td class="w100" align="center" height="20"></td>
+      </tr>
+      <tr>
+        <td class="w100" align="center" height="40"><font face="Arial, sans-serif" color="#808080" size="3">
+          Ce recruteur a consulté au moins un profil aujourd'hui&nbsp;:</font>
+       </td>
+      </tr>
+      <tr>
+       <td height="40" class="w100" align="center"><font face="Arial, sans-serif" color="#808080" size="5"><b>{{name}}</b></font>
+       </td>
+      </tr>
+      <tr>
+      <td height="40" class="w100" align="center">
+      <font face="Arial, sans-serif" color="#808080" size="5">{{email}}</font>
+      </td>
+      </tr>
+      <tr>
+        <td height="40" class="w100" align="center">
+      <font face="Arial, sans-serif" color="#808080" size="5">{{phone}}</b></font>
+       </td>
+      </tr>
+    </table>
+   </td>
+ </tr>
+</table>
+</body>
+</html>
