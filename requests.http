@@ -60,5 +60,7 @@ Content-Type: application/json
 
 ### Login
 POST http://localhost:5000/api/auth/login
-{"email":"test-admin@test.fr",
-"password":"12345"}
+Content-Type: application/json
+
+{"email":"test20_ajout@mail.fr",
+"password":"1234abcd"}

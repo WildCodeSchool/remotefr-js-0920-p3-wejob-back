@@ -57,7 +57,7 @@ router.post('/register', checkAuthFields, async (req, res) => {
 router.post('/login', checkAuthFields, async (req, res) => {
   const { email, password } = req.body;
   const sql =
-    'SELECT id, password hash FROM user WHERE BINARY email = BINARY ?';
+    'SELECT id, password hash, isAdmin FROM user WHERE BINARY email = BINARY ?';
   try {
     const [users] = await pool.query(sql, [email]); // pool.query() renvoie un tableau [rows, fields] (fields = infos sur les colonnes)
     const [user] = users;
@@ -79,7 +79,7 @@ router.post('/login', checkAuthFields, async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
     });
-    return res.json({ id: user.id });
+    return res.json({ id: user.id, email, isAdmin: user.isAdmin });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
