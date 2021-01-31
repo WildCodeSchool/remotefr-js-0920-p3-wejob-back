@@ -97,7 +97,7 @@ const checkJwtMw = async (req, res, next) => {
 
 router.post('/logout', parseCookie, async (req, res) => {
   try {
-    res.cookies.set('token', { expires: Date.now() });
+    res.clearCookie('token');
     return res.sendStatus(204);
   } catch (err) {
     console.error(err);
