@@ -13,24 +13,24 @@ PUT http://localhost:5000/api/candidats/3
 Content-Type: application/json
 
 {
-"email": "test@test.be", 
-"civility": "Monsieur", 
-"lastname":"", 
-"firstname":"", 
-"description":"", 
-"diploma":"", 
-"cv1":"", 
-"cv2":"", 
-"job":"", 
-"linkedin":"", 
-"youtube":"", 
-"picture":"", 
-"availability":null, 
-"mobility":"", 
-"years_of_experiment":null, 
-"isCheck":0, 
-"update_at":null, 
-"isOpen_to_formation":1, 
+"email": "test@test.be",
+"civility": "Monsieur",
+"lastname":"",
+"firstname":"",
+"description":"",
+"diploma":"",
+"cv1":"",
+"cv2":"",
+"job":"",
+"linkedin":"",
+"youtube":"",
+"picture":"",
+"availability":null,
+"mobility":"",
+"years_of_experiment":null,
+"isCheck":0,
+"update_at":null,
+"isOpen_to_formation":1,
 "name_sector":"",
 "name_job":"",
 "language":[{"id":2},{"id":4}],
@@ -53,6 +53,14 @@ Content-Type: application/json
   "email":"test-admin@test.fr",
   "password":"12345"
 }
+
+### Add a new recruiter
+POST http://localhost:5000/api/recruteurs
+Content-Type: application/json
+
+{"email":"test6-recruiter@test.fr",
+"name":"Recruteur The Best",
+"phone":"1234567890"}
 
 ### Login
 POST http://localhost:5000/api/auth/login

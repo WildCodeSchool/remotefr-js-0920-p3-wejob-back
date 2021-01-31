@@ -2,9 +2,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const pool = require('../pool');
 
 const router = express.Router();
-const pool = require('../pool');
 
 const privateKey = process.env.JWT_SECRET;
 
@@ -16,7 +16,7 @@ const checkAuthFields = (req, res, next) => {
     });
   }
   const isEmail = new RegExp(
-    /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
   );
   if (!email.match(isEmail)) {
     return res.status(422).json({
@@ -49,7 +49,7 @@ router.post('/register', checkAuthFields, async (req, res) => {
 router.post('/login', checkAuthFields, async (req, res) => {
   const { email, password } = req.body;
   const sql =
-    'SELECT id, password hash FROM user WHERE BINARY email = BINARY ?';
+    'SELECT id, password hash, isAdmin FROM user WHERE BINARY email = BINARY ?';
   try {
     const [users] = await pool.query(sql, [email]); // pool.query() renvoie un tableau [rows, fields] (fields = infos sur les colonnes)
     const [user] = users;
@@ -71,7 +71,24 @@ router.post('/login', checkAuthFields, async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
     });
-    return res.status(200).json({ id: user.id });
+    return res.json({ id: user.id, email, isAdmin: user.isAdmin });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+});
+
+router.post('/verify-account', async (req, res) => {
+  try {
+    const [[user]] = pool.query(
+      'SELECT email, token FROM user WHERE email = ?',
+      [req.body.email],
+    );
+    if (!user) return res.sendStatus(401);
+    const alreadyHasPassword = user.token !== req.body.token;
+    return res.json({ alreadyHasPassword });
   } catch (err) {
     return res.status(500).json({
       error: err.message,

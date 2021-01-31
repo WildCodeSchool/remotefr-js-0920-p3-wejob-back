@@ -9,7 +9,7 @@ router.post('/', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
     res.cookie('recognizeRecruiter', 'true', {
-      maxAge: 1000 * 60 * 60 * 7,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
     await sendRecruiterData(name, phone, email);
     const [
