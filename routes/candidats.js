@@ -42,13 +42,27 @@ const upload = multer({
 router.get('/', async (req, res) => {
   try {
     const [fiches] = await pool.query(`
-    SELECT id, civility, lastname, firstname, job, description, picture, availability, mobility, isCheck
-    FROM user_fiche`);
+    SELECT
+      user.id, user_fiche.id AS user_fiche_id,
+      civility, lastname, firstname, job, description,
+      picture, availability, mobility, isCheck
+    FROM user
+    JOIN user_fiche
+    ON user.id = user_fiche.user_id`);
     const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id`,
     );
     const [sectors] = await pool.query(
-      `SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id`,
+      `SELECT
+        s.id AS id_sector,
+        s.name AS name_sector,
+        us.user_id AS user_id
+      FROM
+        sector_of_activity s
+      JOIN
+        user_sector_of_activity us
+      ON
+        us.sector_of_activity_id = s.id`,
     );
 
     const fichesCandidats = fiches.map((f) => {
@@ -237,7 +251,7 @@ router.put('/:id', async (req, res) => {
     await pool.query(
       `
     UPDATE user_fiche
-    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?, 
+    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?,
     availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`,
       [
