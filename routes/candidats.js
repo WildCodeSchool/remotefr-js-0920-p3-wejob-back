@@ -88,10 +88,10 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const token = randtoken.generate(32);
-    const userAdd = pool.query('INSERT INTO user (email, token) VALUES (?, ?)', [
-      req.body.email,
-      token,
-    ]);
+    const userAdd = pool.query(
+      'INSERT INTO user (email, token) VALUES (?, ?)',
+      [req.body.email, token],
+    );
     await sendToken(req.body.email, token);
     return res.status(201).json({ id: userAdd[0].insertId });
   } catch (error) {
@@ -185,11 +185,11 @@ router.get('/:id', async (req, res) => {
     if (!fiche) {
       return res.sendStatus(404);
     }
-    const language = await pool.query(
+    const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id WHERE ul.user_id = ?`,
       candidatId,
     );
-    const sectors = await pool.query(
+    const [sectors] = await pool.query(
       `SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id WHERE us.user_id = ?`,
       candidatId,
     );
