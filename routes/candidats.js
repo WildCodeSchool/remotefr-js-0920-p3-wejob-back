@@ -13,7 +13,7 @@ const sendToken = require('../services/send-token');
 const hashPassword = require('./hash-password');
 
 const router = express.Router();
-const removeFile = util.promisify(fs.rm);
+const removeFile = util.promisify(fs.unlink);
 const pool = require('../pool');
 
 const storage = multer.diskStorage({
