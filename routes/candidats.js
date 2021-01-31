@@ -1,31 +1,68 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable camelcase */
+/* eslint-disable func-names */
+/* eslint-disable object-shorthand */
 const express = require('express');
 const randtoken = require('rand-token');
+const slug = require('slug');
+const path = require('path');
+const fs = require('fs');
+const util = require('util');
+const multer = require('multer');
 const sendToken = require('../services/send-token');
 const hashPassword = require('./hash-password');
-const cors = require('cors');
 
 const router = express.Router();
-
+const removeFile = util.promisify(fs.rm);
 const pool = require('../pool');
 
-router.use(
-  cors({
-    origin: process.env.FRONT_URL,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  }),
-);
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: function (req, file, cb) {
+    const ext = file.originalname.split('.');
+    let ch = slug(
+      `${req.body.lastname} ${req.body.firstname} ${file.fieldname}`,
+      '_',
+    );
+    ch += `.${ext[ext.length - 1]}`;
+    cb(null, ch);
+  },
+});
 
+const upload = multer({
+  storage: storage,
+});
+
+/**
+ * si cookie.isAdmin true retourner toute la liste si false 401
+ * sinon pas de cookie toute la liste isCheck true
+ */
 router.get('/', async (req, res) => {
   try {
     const [fiches] = await pool.query(`
-    SELECT id, civility, lastname, firstname, job, description, picture, availability, mobility, isCheck
-    FROM user_fiche`);
+    SELECT
+      user.id, user_fiche.id AS user_fiche_id,
+      civility, lastname, firstname, job, description,
+      picture, availability, mobility, isCheck
+    FROM user
+    JOIN user_fiche
+    ON user.id = user_fiche.user_id`);
     const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id`,
     );
     const [sectors] = await pool.query(
-      `SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id`,
+      `SELECT
+        s.id AS id_sector,
+        s.name AS name_sector,
+        us.user_id AS user_id
+      FROM
+        sector_of_activity s
+      JOIN
+        user_sector_of_activity us
+      ON
+        us.sector_of_activity_id = s.id`,
     );
 
     const fichesCandidats = fiches.map((f) => {
@@ -45,25 +82,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * uniquemetn si cookie present et isAdmin true sinon 401
+ */
 router.post('/', async (req, res) => {
   try {
     const token = randtoken.generate(32);
-    await pool.query('INSERT INTO user (email, token) VALUES (?, ?)', [
+    const userAdd = pool.query('INSERT INTO user (email, token) VALUES (?, ?)', [
       req.body.email,
       token,
     ]);
-    const newUser = await pool.query(
-      `SELECT id, email FROM user WHERE email=?`,
-      [req.body.email],
-    );
     await sendToken(req.body.email, token);
-    return res.status(201).json(newUser[0]);
+    return res.status(201).json({ id: userAdd[0].insertId });
   } catch (error) {
     return res.status(500).json({
       error: error.message,
     });
   }
 });
+
+router.post(
+  '/file',
+  upload.fields([{ name: 'cv1' }, { name: 'cv2' }, { name: 'picture' }]),
+  (req, res) => {
+    const data = req.body;
+    if (req.files.length !== 0) {
+      Object.keys(req.files).forEach((key) => {
+        data[key] = req.files[key][0].path;
+      });
+    }
+    res.sendStatus(200);
+  },
+);
 
 router.post('/update-password', async (req, res) => {
   try {
@@ -88,9 +138,29 @@ router.post('/update-password', async (req, res) => {
   }
 });
 
-router.delete('/:id', (req, res) => {
+/**
+ * uniquemetn si cookie present et isAdmin true sinon 401
+ */
+router.delete('/:id', async (req, res) => {
   try {
-    pool.query('DELETE FROM user_fiche WHERE id=?', req.params.id);
+    const [
+      userInfo,
+      userFields,
+    ] = await pool.query(
+      'SELECT user_id, cv1, cv2, picture FROM user_fiche WHERE user_id =?',
+      [req.params.id],
+    );
+    const { cv1, cv2, picture, user_id } = userInfo[0];
+    if (cv1) {
+      await removeFile(path.join(process.cwd(), cv1.split('uploads/')[1]));
+    }
+    if (cv2) {
+      await removeFile(path.join(process.cwd(), cv2.split('uploads/')[1]));
+    }
+    if (picture) {
+      await removeFile(path.join(process.cwd(), picture.split('uploads/')[1]));
+    }
+    // await pool.query('DELETE FROM user WHERE id=?', [user_id]);
     return res.sendStatus(204);
   } catch (error) {
     return res.status(500).json({
@@ -99,13 +169,17 @@ router.delete('/:id', (req, res) => {
   }
 });
 
+/**
+ * uniquement si cookie[wejobjwt] present
+ * sinon cookie recognizeRecruiter present sinon 401
+ */
 router.get('/:id', async (req, res) => {
   try {
     const candidatId = req.params.id;
     const [fiche] = await pool.query(
       `
     SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
-    FROM user_fiche WHERE id = ?`,
+    FROM user_fiche WHERE user_id = ?`,
       candidatId,
     );
     if (!fiche) {
@@ -120,7 +194,7 @@ router.get('/:id', async (req, res) => {
       candidatId,
     );
     const profileCandidat = {
-      fiche: fiche,
+      ...fiche,
       language: language,
       sector_of_activity: sectors,
     };
@@ -131,7 +205,11 @@ router.get('/:id', async (req, res) => {
     });
   }
 });
-
+/**
+ * uniquemetn si cookie present et isAdmin true pour le champs isCheck
+ * si isAdmin false tout sauf isCheck
+ * sinon 401
+ */
 router.put('/:id', async (req, res) => {
   try {
     const candidatToUpdateId = req.params.id;
@@ -153,7 +231,6 @@ router.put('/:id', async (req, res) => {
     } else {
       ficheId = fiche.id;
     }
-    console.log(fiche, ficheId);
     const {
       email,
       civility,
@@ -173,8 +250,6 @@ router.put('/:id', async (req, res) => {
       isCheck,
       update_at,
       isOpen_to_formation,
-      name_sector,
-      name_job,
     } = req.body;
 
     await pool.query(
@@ -188,7 +263,7 @@ router.put('/:id', async (req, res) => {
     await pool.query(
       `
     UPDATE user_fiche
-    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?, 
+    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?,
     availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`,
       [

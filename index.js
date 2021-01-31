@@ -15,17 +15,18 @@ app.use(cookieParser());
 
 app.use(express.json());
 
-app.use(cors({
-  origin: process.env.FRONT_URL,
-  credentials: true,
-  optionsSuccessStatus: 200,
-}));
+app.use(
+  cors({
+    origin: process.env.FRONT_URL,
+    credentials: true,
+    optionsSuccessStatus: 200,
+  }),
+);
 
 app.use('/api', api);
 
 app.listen(port, (err) => {
   if (err) {
-    console.error(err);
     process.exit(1);
   } else {
     console.log(`Express server listening on ${port}`);
