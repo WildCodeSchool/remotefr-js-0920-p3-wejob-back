@@ -88,14 +88,10 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const token = randtoken.generate(32);
-    const userAdd = await pool.query(
+    const userAdd = pool.query(
       'INSERT INTO user (email, token) VALUES (?, ?)',
       [req.body.email, token],
     );
-    // const newUser = await pool.query(
-    //   `SELECT id, email FROM user WHERE email=?`,
-    //   [req.body.email],
-    // );
     await sendToken(req.body.email, token);
     return res.status(201).json({ id: userAdd[0].insertId });
   } catch (error) {
@@ -186,7 +182,7 @@ router.get('/:id', async (req, res) => {
     FROM user_fiche WHERE user_id = ?`,
       candidatId,
     );
-    if (fiche.length === 0) {
+    if (!fiche) {
       return res.sendStatus(404);
     }
     const [language] = await pool.query(
@@ -217,6 +213,24 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const candidatToUpdateId = req.params.id;
+    // On vérifie si le fiche existe
+    const [
+      [fiche],
+    ] = await pool.query(`SELECT id FROM user_fiche WHERE user_id=?`, [
+      candidatToUpdateId,
+    ]);
+    let ficheId;
+    // Sinon on la crée
+    if (!fiche) {
+      const [
+        status,
+      ] = await pool.query(`INSERT INTO user_fiche (user_id) VALUES (?)`, [
+        candidatToUpdateId,
+      ]);
+      ficheId = status.insertId;
+    } else {
+      ficheId = fiche.id;
+    }
     const {
       email,
       civility,
@@ -241,10 +255,8 @@ router.put('/:id', async (req, res) => {
     await pool.query(
       `
     UPDATE user
-    INNER JOIN user_fiche
-    ON user.id=user_fiche.id
-    SET user.email = ?
-    WHERE user_fiche.id = ?`,
+    SET email = ?
+    WHERE id = ?`,
       [email, candidatToUpdateId],
     );
 
@@ -272,7 +284,7 @@ router.put('/:id', async (req, res) => {
         isCheck,
         update_at,
         isOpen_to_formation,
-        candidatToUpdateId,
+        ficheId,
       ],
     );
 
