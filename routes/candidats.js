@@ -114,20 +114,78 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const candidatToUpdateId = req.params.id;
-    const { email, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, name_sector, name_job } = req.body;
+    let ficheId;
+    const [
+      [fiche],
+    ] = await pool.query('SELECT id FROM user_fiche WHERE user_id = ?', [
+      candidatToUpdateId,
+    ]);
+    if (!fiche) {
+      const [
+        status,
+      ] = await pool.query('INSERT INTO user_fiche (user_id) VALUES(?)', [
+        candidatToUpdateId,
+      ]);
+      ficheId = status.insertId;
+    } else {
+      ficheId = fiche.id;
+    }
+    console.log(fiche, ficheId);
+
+    const {
+      email,
+      civility,
+      lastname,
+      firstname,
+      description,
+      diploma,
+      cv1,
+      cv2,
+      job,
+      linkedin,
+      youtube,
+      picture,
+      availability,
+      mobility,
+      years_of_experiment,
+      isCheck,
+      update_at,
+      isOpen_to_formation,
+    } = req.body;
 
     await pool.query(`
     UPDATE user
-    INNER JOIN user_fiche
-    ON user.id=user_fiche.id
-    SET user.email = ?
-    WHERE user_fiche.id = ?`, [email, candidatToUpdateId]);
+    SET email = ?
+    WHERE id = ?`,
+      [email, candidatToUpdateId],
+    );
 
     await pool.query(`
     UPDATE user_fiche
-    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?, 
+    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?,
     availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
-    WHERE id = ?`, [civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, update_at, isOpen_to_formation, candidatToUpdateId]);
+    WHERE id = ?`,
+      [
+        civility,
+        lastname,
+        firstname,
+        description,
+        diploma,
+        cv1,
+        cv2,
+        job,
+        linkedin,
+        youtube,
+        picture,
+        availability,
+        mobility,
+        years_of_experiment,
+        isCheck,
+        update_at,
+        isOpen_to_formation,
+        ficheId,
+      ],
+    );
 
     const insertedLanguage = req.body.language;
     await pool.query(`DELETE FROM user_language WHERE user_id=?`, [candidatToUpdateId]);
