@@ -5,3 +5,7 @@ yarn.lock
 pnpm-lock.yaml
 .env
 
+uploads/*.pdf
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.png
