@@ -1,5 +1,11 @@
+requests.http
 node_modules
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
 .env
+
+uploads/*.pdf
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.png

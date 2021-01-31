@@ -1,12 +1,12 @@
+/* eslint-disable no-useless-escape */
 const express = require('express');
-const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const pool = require('../pool');
 
 const router = express.Router();
 
 const privateKey = process.env.JWT_SECRET;
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const pool = require('../pool');
 
 const checkAuthFields = (req, res, next) => {
   const { email, password } = req.body;
@@ -90,7 +90,6 @@ router.post('/verify-account', async (req, res) => {
     const alreadyHasPassword = user.token !== req.body.token;
     return res.json({ alreadyHasPassword });
   } catch (err) {
-    console.error(err);
     return res.status(500).json({
       error: err.message,
     });
@@ -105,7 +104,6 @@ const checkJwtMw = async (req, res, next) => {
     req.user = decoded;
     return next();
   } catch (err) {
-    console.error(err);
     return res.sendStatus(401);
   }
 };
