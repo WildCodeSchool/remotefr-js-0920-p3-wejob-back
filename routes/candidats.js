@@ -119,6 +119,7 @@ router.post(
       Object.keys(req.files).forEach((key) => {
         data[key] = req.files[key][0].filename;
       });
+      if (Object.keys(data).length === 0) return res.sendStatus(204);
       await pool.query('UPDATE user_fiche SET ? WHERE user_id = ?', [
         data,
         req.params.id,
