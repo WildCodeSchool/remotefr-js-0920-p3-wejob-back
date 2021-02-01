@@ -3,7 +3,7 @@ const getTemplate = require('./get-template');
 
 async function sendToken(recipient, token) {
   const template = getTemplate('forgot-password');
-  const link = `${process.env.FRONT_URL}/ForgotYourPassword?token=${token}`;
+  const link = `${process.env.FRONT_URL}/mot-de-passe-oublie?token=${token}`;
   const publicURL = process.env.PUBLIC_URL;
   const text = `Bonjour, ceci est un e-mail automatique envoyé à la suite d'un clic sur "mot de passe oublié", sur le site We-Job. Cliquez sur ce lien pour créer un nouveau mot de passe : ${link}. Si vous n'avez pas demandé la réinitialisation de votre mot de passe, vous pouvez ignorer cet email.`;
   const html = template({ link, publicURL });
