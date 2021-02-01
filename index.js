@@ -10,15 +10,12 @@ const port = process.env.PORT || 5000;
 const app = express();
 const api = require('./routes');
 
-const adminAppPath = path.resolve(
-  __dirname,
-  '..',
-  'remotefr-js-0920-p3-wejob-admin',
-  'build',
-);
+const adminAppBuildDir =
+  process.env.ADMIN_APP_DIR &&
+  path.resolve(__dirname, process.env.ADMIN_APP_DIR, 'build');
 
 app.use(express.static('public'));
-app.use(express.static(adminAppPath));
+if (adminAppBuildDir) app.use(express.static(adminAppBuildDir));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -32,17 +29,12 @@ app.use(
 
 app.use('/api', api);
 
-app.get('/*', (req, res) => {
-  res.sendFile(
-    path.resolve(
-      __dirname,
-      '..',
-      'remotefr-js-0920-p3-wejob-admin',
-      'build',
-      'index.html',
-    ),
-  );
-});
+// Serves the admin app from its build dir
+if (adminAppBuildDir) {
+  app.get('/*', (req, res) => {
+    res.sendFile(path.resolve(adminAppBuildDir, 'index.html'));
+  });
+}
 
 app.listen(port, (err) => {
   if (err) {
