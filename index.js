@@ -19,14 +19,12 @@ const adminAppPath = path.resolve(
 
 app.use(express.static('public'));
 app.use(express.static(adminAppPath));
-
 app.use(cookieParser());
-
 app.use(express.json());
 
 app.use(
   cors({
-    origin: process.env.FRONT_URL,
+    origin: [process.env.ADMIN_APP_URL, process.env.PUBLIC_APP_ORIGIN],
     credentials: true,
     optionsSuccessStatus: 200,
   }),
