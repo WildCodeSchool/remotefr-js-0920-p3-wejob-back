@@ -10,6 +10,8 @@ const app = express();
 const api = require('./routes');
 
 app.use(express.static('public'));
+// Should we protect this? for CVs...
+app.use(express.static('uploads'));
 
 app.use(cookieParser());
 
