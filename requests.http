@@ -3,34 +3,34 @@ GET http://localhost:5000/api/candidats
 
 ### Get 1 user (information from several tables)
 ### (id from user_fiche.id)
-GET http://localhost:5000/api/candidats/1
+GET http://localhost:5000/api/candidats/3
 
 ### Delete 1 user (id from user_fiche.id)
-DELETE http://localhost:5000/api/candidats/2
+DELETE http://localhost:5000/api/candidats/1
 
 ### Modify 1 user (id from user_fiche.id)
 PUT http://localhost:5000/api/candidats/3
 Content-Type: application/json
 
 {
-"email": "test@test.be", 
-"civility": "Monsieur", 
-"lastname":"", 
-"firstname":"", 
-"description":"", 
-"diploma":"", 
-"cv1":"", 
-"cv2":"", 
-"job":"", 
-"linkedin":"", 
-"youtube":"", 
-"picture":"", 
-"availability":null, 
-"mobility":"", 
-"years_of_experiment":null, 
-"isCheck":0, 
-"update_at":null, 
-"isOpen_to_formation":1, 
+"email": "test@test.be",
+"civility": "Monsieur",
+"lastname":"",
+"firstname":"",
+"description":"",
+"diploma":"",
+"cv1":"",
+"cv2":"",
+"job":"",
+"linkedin":"",
+"youtube":"",
+"picture":"",
+"availability":null,
+"mobility":"",
+"years_of_experiment":null,
+"isCheck":0,
+"update_at":null,
+"isOpen_to_formation":1,
 "name_sector":"",
 "name_job":"",
 "language":[{"id":2},{"id":4}],
@@ -39,14 +39,34 @@ Content-Type: application/json
 
 ### Add a new user (email)
 POST http://localhost:5000/api/candidats
-{"email":"test-new-candidat@test.com"}
+Content-Type: application/json
+
+{
+  "email":"test-newfezd-candidat@test.com"
+}
 
 ### Add a new admin (email + password)
 POST http://localhost:5000/api/auth/register
-{"email":"test-admin@test.fr":"",
-"password":"12345"}
+Content-Type: application/json
+
+{
+  "email":"test-admin@test.fr",
+  "password":"12345"
+}
+
+### Add a new recruiter
+POST http://localhost:5000/api/recruteurs
+Content-Type: application/json
+
+{"email":"test6-recruiter@test.fr",
+"name":"Recruteur The Best",
+"phone":"1234567890"}
 
 ### Login
 POST http://localhost:5000/api/auth/login
-{"email":"test-admin@test.fr":"",
-"password":"12345"}
+Content-Type: application/json
+
+{
+  "email":"test-admin@test.fr",
+  "password":"12345"
+}
