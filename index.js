@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -9,7 +10,15 @@ const port = process.env.PORT || 5000;
 const app = express();
 const api = require('./routes');
 
+const adminAppPath = path.resolve(
+  __dirname,
+  '..',
+  'remotefr-js-0920-p3-wejob-admin',
+  'build',
+);
+
 app.use(express.static('public'));
+app.use(express.static(adminAppPath));
 
 app.use(cookieParser());
 
@@ -24,6 +33,18 @@ app.use(
 );
 
 app.use('/api', api);
+
+app.get('/*', (req, res) => {
+  res.sendFile(
+    path.resolve(
+      __dirname,
+      '..',
+      'remotefr-js-0920-p3-wejob-admin',
+      'build',
+      'index.html',
+    ),
+  );
+});
 
 app.listen(port, (err) => {
   if (err) {
