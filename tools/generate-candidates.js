@@ -41,7 +41,9 @@ const allKeywords = [
 const rand = (min, max) => min + Math.ceil((max - min) * Math.random());
 
 const fetchRandomUsers = async (n) =>
-  axios.get(`${rndApiUrl}?results=${n}`).then(({ data }) => data.results);
+  axios
+    .get(`${rndApiUrl}?nat=fr&results=${n}`)
+    .then(({ data }) => data.results);
 
 const getLanguages = async () =>
   pool
