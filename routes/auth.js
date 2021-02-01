@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../pool');
+const { checkIsAdmin, checkJwtMw } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const checkAuthFields = (req, res, next) => {
   return next();
 };
 
-router.post('/register', checkAuthFields, async (req, res) => {
+router.post('/register', checkIsAdmin, checkAuthFields, async (req, res) => {
   try {
     const { email, password } = req.body;
     const passwordHashed = await bcrypt.hash(password, 14);
@@ -67,7 +68,10 @@ router.post('/login', checkAuthFields, async (req, res) => {
       });
     }
     // générer un JWT propre à cet utilisateur (contenant l'id de l'utilisateur)
-    const token = await jwt.sign({ id: user.id }, privateKey);
+    const token = await jwt.sign(
+      { id: user.id, isAdmin: !!user.isAdmin },
+      privateKey,
+    );
     res.cookie('token', token, {
       httpOnly: true,
     });
@@ -95,18 +99,6 @@ router.post('/verify-account', async (req, res) => {
     });
   }
 });
-
-const checkJwtMw = async (req, res, next) => {
-  const { token } = req.cookies;
-  if (!token) return res.sendStatus(401);
-  try {
-    const { iat, exp, ...decoded } = await jwt.verify(token, privateKey);
-    req.user = decoded;
-    return next();
-  } catch (err) {
-    return res.sendStatus(401);
-  }
-};
 
 router.post('/logout', checkJwtMw, async (req, res) => {
   try {
