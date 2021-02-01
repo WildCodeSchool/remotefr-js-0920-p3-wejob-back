@@ -12,10 +12,12 @@ const multer = require('multer');
 const sendToken = require('../services/send-token');
 const sendTokenForgotPwd = require('../services/send-token-forgot-pwd');
 const hashPassword = require('./hash-password');
+const pool = require('../pool');
+const { checkIsAdmin, checkCanUpdateCandidat } = require('../middlewares/auth');
+const getCandidateFields = require('../middlewares/get-candidate-fields');
 
 const router = express.Router();
 const removeFile = util.promisify(fs.rm);
-const pool = require('../pool');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -23,10 +25,10 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const ext = file.originalname.split('.');
-    let ch = slug(
-      `${req.body.lastname} ${req.body.firstname} ${file.fieldname}`,
-      '_',
-    );
+    const { id, lastname, firstname } = req.candidate;
+    // Calcul d'un faux "hash" basé sur l'id, converti en base36
+    const hash = (3000000 + id).toString(36);
+    let ch = slug(`${hash} ${lastname} ${firstname} ${file.fieldname}`, '_');
     ch += `.${ext[ext.length - 1]}`;
     cb(null, ch);
   },
@@ -84,18 +86,20 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * uniquemetn si cookie present et isAdmin true sinon 401
+ * uniquement si cookie present et isAdmin true sinon 401
  */
-router.post('/', async (req, res) => {
+router.post('/', checkIsAdmin, async (req, res) => {
   try {
     const token = randtoken.generate(32);
-    const userAdd = pool.query(
+    const userAdd = await pool.query(
       'INSERT INTO user (email, token) VALUES (?, ?)',
       [req.body.email, token],
     );
+
     await sendToken(req.body.email, token);
     return res.status(201).json({ id: userAdd[0].insertId });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       error: error.message,
     });
@@ -129,16 +133,30 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 router.post(
-  '/file',
+  '/:id/files',
+  checkCanUpdateCandidat,
+  getCandidateFields,
   upload.fields([{ name: 'cv1' }, { name: 'cv2' }, { name: 'picture' }]),
-  (req, res) => {
-    const data = req.body;
-    if (req.files.length !== 0) {
+  async (req, res) => {
+    const data = {};
+    // 204 or error code?
+    if (req.files.length === 0) return res.sendStatus(204);
+
+    try {
       Object.keys(req.files).forEach((key) => {
-        data[key] = req.files[key][0].path;
+        data[key] = req.files[key][0].filename;
+      });
+      await pool.query('UPDATE user_fiche SET ? WHERE user_id = ?', [
+        data,
+        req.params.id,
+      ]);
+      return res.sendStatus(204);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({
+        error: `Error while processing files: ${err.message}`,
       });
     }
-    res.sendStatus(200);
   },
 );
 
@@ -168,7 +186,7 @@ router.post('/update-password', async (req, res) => {
 /**
  * uniquemetn si cookie present et isAdmin true sinon 401
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', checkCanUpdateCandidat, async (req, res) => {
   try {
     const [
       userInfo,
@@ -279,13 +297,14 @@ router.put('/:id', async (req, res) => {
       isOpen_to_formation,
     } = req.body;
 
-    await pool.query(
-      `
+    if (email)
+      await pool.query(
+        `
     UPDATE user
     SET email = ?
     WHERE id = ?`,
-      [email, candidatToUpdateId],
-    );
+        [email, candidatToUpdateId],
+      );
 
     await pool.query(
       `
