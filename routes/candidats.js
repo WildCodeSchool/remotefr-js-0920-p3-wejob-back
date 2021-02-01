@@ -10,6 +10,7 @@ const fs = require('fs');
 const util = require('util');
 const multer = require('multer');
 const sendToken = require('../services/send-token');
+const sendTokenForgotPwd = require('../services/send-token-forgot-pwd');
 const hashPassword = require('./hash-password');
 
 const router = express.Router();
@@ -94,6 +95,32 @@ router.post('/', async (req, res) => {
     );
     await sendToken(req.body.email, token);
     return res.status(201).json({ id: userAdd[0].insertId });
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const checkIfExists = await pool.query(
+      'SELECT COUNT(email) FROM user WHERE email=?',
+      [req.body.email],
+    );
+    if (checkIfExists === 0) {
+      return res.status(500).json({
+        error:
+          'Cet e-mail n’existe pas chez We-Job. Merci de contacter votre conseiller.',
+      });
+    }
+    const token = await randtoken.generate(32);
+    await pool.query('UPDATE user SET token=? WHERE email=?', [
+      token,
+      req.body.email,
+    ]);
+    await sendTokenForgotPwd(req.body.email, token);
+    return res.sendStatus(200);
   } catch (error) {
     return res.status(500).json({
       error: error.message,
