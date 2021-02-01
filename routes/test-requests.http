@@ -1,0 +1,28 @@
+### Auth / Enregistrement nouvel user (ADMIN)
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "benoit.hubert@wildcodeschool.com",
+  "password": "Abcd1234"
+}
+
+### Auth / connexion
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "benoit.hubert+wj03@wildcodeschool.com",
+  "password": "Abcd1234"
+}
+
+### Candidats / Enregistrement nouveau candidat
+POST http://localhost:5000/api/candidats
+Content-Type: application/json
+
+{
+  "email": "benoit.hubert+wj03@wildcodeschool.com"
+}
+
+### Candidats / Get one
+GET http://localhost:5000/api/candidats/8

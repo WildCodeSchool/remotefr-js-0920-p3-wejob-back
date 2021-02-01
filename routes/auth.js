@@ -108,6 +108,18 @@ const checkJwtMw = async (req, res, next) => {
   }
 };
 
+router.post('/logout', checkJwtMw, async (req, res) => {
+  try {
+    res.clearCookie('token');
+    return res.sendStatus(204);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+});
+
 router.get('/check', checkJwtMw, async (req, res) => {
   res.send(req.user);
 });
