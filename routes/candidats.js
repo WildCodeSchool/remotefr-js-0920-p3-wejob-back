@@ -238,7 +238,7 @@ router.get('/:id', async (req, res) => {
     const [[fiche]] = await pool.query(
       `
     SELECT user.id, user_fiche.id AS user_fiche_id, email, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
-    FROM user_fiche JOIN user ON user_fiche.user_id = user.id WHERE user_id = ?`,
+    FROM user LEFT JOIN user_fiche ON user.id = user_fiche.user_id WHERE user.id = ?`,
       candidatId,
     );
     if (!fiche) {
@@ -312,6 +312,8 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       isOpen_to_formation,
     } = req.body;
 
+    if (!['Monsieur', 'Madame'].includes(civility)) return res.sendStatus(400);
+
     console.log('check isCheck', req.user, !req.user?.isAdmin, isCheck);
     if (!req.user?.isAdmin && isCheck) return res.sendStatus(403);
 
@@ -360,10 +362,11 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       candidatToUpdateId,
       langue.id,
     ]);
-    await pool.query(
-      `INSERT INTO user_language(user_id, language_id) VALUES ?`,
-      [insertedLangValues],
-    );
+    if (insertedLangValues.length > 0)
+      await pool.query(
+        `INSERT INTO user_language(user_id, language_id) VALUES ?`,
+        [insertedLangValues],
+      );
 
     const insertedSectors = req.body.sector_of_activity;
     await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [
@@ -373,14 +376,15 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       candidatToUpdateId,
       sector.id,
     ]);
-    await pool.query(
-      `INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`,
-      [insertedSectorValues],
-    );
+    if (insertedSectorValues.length > 0)
+      await pool.query(
+        `INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`,
+        [insertedSectorValues],
+      );
 
     return res.status(204).json(candidatToUpdateId);
   } catch (error) {
-    console.error(error);
+    console.error(error.stack);
     return res.status(500).json({
       error: error.message,
     });
