@@ -70,3 +70,6 @@ Content-Type: application/json
   "email":"test-admin@test.fr",
   "password":"12345"
 }
+
+### Check if Recruiter is known
+GET http://localhost:5000/api/recruteurs/check
