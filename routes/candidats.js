@@ -17,7 +17,7 @@ const { checkIsAdmin, checkCanUpdateCandidat } = require('../middlewares/auth');
 const getCandidateFields = require('../middlewares/get-candidate-fields');
 
 const router = express.Router();
-const removeFile = util.promisify(fs.rm);
+const removeFile = util.promisify(fs.unlink);
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -112,6 +112,7 @@ router.post('/forgot-password', async (req, res) => {
       'SELECT COUNT(email) FROM user WHERE email=?',
       [req.body.email],
     );
+    console.log(req.body.email, checkIfExists);
     if (checkIfExists === 0) {
       return res.status(500).json({
         error:
@@ -162,9 +163,11 @@ router.post(
 );
 
 router.post('/update-password', async (req, res) => {
+  console.log(req.body);
   try {
     const { token, password } = req.body;
     const hashedPassword = await hashPassword(password);
+    console.log(hashedPassword);
     const [
       status,
     ] = await pool.query(
@@ -222,9 +225,9 @@ router.delete('/:id', checkCanUpdateCandidat, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const candidatId = req.params.id;
-    const [fiche] = await pool.query(
+    const [[fiche]] = await pool.query(
       `
-    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
+    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
     FROM user_fiche WHERE user_id = ?`,
       candidatId,
     );
@@ -239,6 +242,7 @@ router.get('/:id', async (req, res) => {
       `SELECT s.id AS id_sector, s.name AS name_sector, us.user_id AS user_id FROM sector_of_activity s JOIN user_sector_of_activity us ON us.sector_of_activity_id = s.id WHERE us.user_id = ?`,
       candidatId,
     );
+    // const profileCandidat = Object.assign({}, fiche, language, sectors);
     const profileCandidat = {
       ...fiche,
       language: language,
