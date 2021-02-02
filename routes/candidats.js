@@ -227,7 +227,7 @@ router.get('/:id', async (req, res) => {
     const candidatId = req.params.id;
     const [[fiche]] = await pool.query(
       `
-    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
+    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
     FROM user_fiche WHERE user_id = ?`,
       candidatId,
     );
