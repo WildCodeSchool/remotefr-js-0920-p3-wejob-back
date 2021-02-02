@@ -47,7 +47,7 @@ const upload = multer({
  * sinon pas de cookie toute la liste isCheck true
  */
 router.get('/', softCheckIsAdmin, async (req, res) => {
-  const isAdmin = req.user?.isAdmin;
+  const isAdmin = req.user && req.user.isAdmin;
   const where = isAdmin ? '1 = 1' : 'user_fiche.isCheck = 1';
   const emailField = isAdmin ? 'user.email,' : '';
 
@@ -314,8 +314,8 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
 
     if (!['Monsieur', 'Madame'].includes(civility)) return res.sendStatus(400);
 
-    console.log('check isCheck', req.user, !req.user?.isAdmin, isCheck);
-    if (!req.user?.isAdmin && isCheck) return res.sendStatus(403);
+    const isAdmin = req.user && req.user.isAdmin;
+    if (!isAdmin && isCheck) return res.sendStatus(403);
 
     if (email)
       await pool.query(
