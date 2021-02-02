@@ -13,7 +13,11 @@ const sendToken = require('../services/send-token');
 const sendTokenForgotPwd = require('../services/send-token-forgot-pwd');
 const hashPassword = require('./hash-password');
 const pool = require('../pool');
-const { checkIsAdmin, checkCanUpdateCandidat } = require('../middlewares/auth');
+const {
+  checkIsAdmin,
+  softCheckIsAdmin,
+  checkCanUpdateCandidat,
+} = require('../middlewares/auth');
 const getCandidateFields = require('../middlewares/get-candidate-fields');
 
 const router = express.Router();
@@ -42,16 +46,22 @@ const upload = multer({
  * si cookie.isAdmin true retourner toute la liste si false 401
  * sinon pas de cookie toute la liste isCheck true
  */
-router.get('/', async (req, res) => {
+router.get('/', softCheckIsAdmin, async (req, res) => {
+  const isAdmin = req.user?.isAdmin;
+  const where = isAdmin ? '1 = 1' : 'user_fiche.isCheck = 1';
+  const emailField = isAdmin ? 'user.email,' : '';
+
   try {
     const [fiches] = await pool.query(`
     SELECT
-      user.id, user_fiche.id AS user_fiche_id,
+      user.id,${emailField}
+      user_fiche.id AS user_fiche_id,
       civility, lastname, firstname, job, description,
       picture, availability, mobility, isCheck
     FROM user
-    JOIN user_fiche
-    ON user.id = user_fiche.user_id`);
+    LEFT JOIN user_fiche
+    ON user.id = user_fiche.user_id
+    WHERE ${where}`);
     const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id`,
     );
@@ -99,8 +109,8 @@ router.post('/', checkIsAdmin, async (req, res) => {
     await sendToken(req.body.email, token);
     return res.status(201).json({ id: userAdd[0].insertId });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
+    const status = error.code === 'ER_DUP_ENTRY' ? 409 : 500;
+    return res.status(status).json({
       error: error.message,
     });
   }
@@ -227,8 +237,8 @@ router.get('/:id', async (req, res) => {
     const candidatId = req.params.id;
     const [[fiche]] = await pool.query(
       `
-    SELECT id, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
-    FROM user_fiche WHERE user_id = ?`,
+    SELECT user.id, user_fiche.id AS user_fiche_id, email, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
+    FROM user LEFT JOIN user_fiche ON user.id = user_fiche.user_id WHERE user.id = ?`,
       candidatId,
     );
     if (!fiche) {
@@ -260,7 +270,7 @@ router.get('/:id', async (req, res) => {
  * si isAdmin false tout sauf isCheck
  * sinon 401
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
   try {
     const candidatToUpdateId = req.params.id;
     // On vérifie si le fiche existe
@@ -301,6 +311,11 @@ router.put('/:id', async (req, res) => {
       update_at,
       isOpen_to_formation,
     } = req.body;
+
+    if (!['Monsieur', 'Madame'].includes(civility)) return res.sendStatus(400);
+
+    console.log('check isCheck', req.user, !req.user?.isAdmin, isCheck);
+    if (!req.user?.isAdmin && isCheck) return res.sendStatus(403);
 
     if (email)
       await pool.query(
@@ -347,10 +362,11 @@ router.put('/:id', async (req, res) => {
       candidatToUpdateId,
       langue.id,
     ]);
-    await pool.query(
-      `INSERT INTO user_language(user_id, language_id) VALUES ?`,
-      [insertedLangValues],
-    );
+    if (insertedLangValues.length > 0)
+      await pool.query(
+        `INSERT INTO user_language(user_id, language_id) VALUES ?`,
+        [insertedLangValues],
+      );
 
     const insertedSectors = req.body.sector_of_activity;
     await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [
@@ -360,13 +376,15 @@ router.put('/:id', async (req, res) => {
       candidatToUpdateId,
       sector.id,
     ]);
-    await pool.query(
-      `INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`,
-      [insertedSectorValues],
-    );
+    if (insertedSectorValues.length > 0)
+      await pool.query(
+        `INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`,
+        [insertedSectorValues],
+      );
 
     return res.status(204).json(candidatToUpdateId);
   } catch (error) {
+    console.error(error.stack);
     return res.status(500).json({
       error: error.message,
     });

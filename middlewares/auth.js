@@ -2,16 +2,22 @@ const jwt = require('jsonwebtoken');
 
 const privateKey = process.env.JWT_SECRET;
 
-const checkJwtMw = async (req, res, next) => {
+const extractJwtUser = async (req) => {
   const { token } = req.cookies;
-  if (!token) return res.sendStatus(401);
+  if (!token) return null;
   try {
     const { iat, exp, ...decoded } = await jwt.verify(token, privateKey);
-    req.user = decoded;
-    return next();
+    return decoded;
   } catch (err) {
-    return res.sendStatus(401);
+    return null;
   }
+};
+
+const checkJwtMw = async (req, res, next) => {
+  const user = await extractJwtUser(req);
+  if (!user) return res.sendStatus(401);
+  req.user = user;
+  return next();
 };
 
 const checkIsAdmin = (req, res, next) =>
@@ -19,6 +25,11 @@ const checkIsAdmin = (req, res, next) =>
     if (!req.user.isAdmin) return res.sendStatus(403);
     return next();
   });
+
+const softCheckIsAdmin = async (req, res, next) => {
+  req.user = await extractJwtUser(req);
+  return next();
+};
 
 const checkCanUpdateCandidat = (req, res, next) =>
   checkJwtMw(req, res, () => {
@@ -30,5 +41,6 @@ const checkCanUpdateCandidat = (req, res, next) =>
 module.exports = {
   checkJwtMw,
   checkIsAdmin,
+  softCheckIsAdmin,
   checkCanUpdateCandidat,
 };
