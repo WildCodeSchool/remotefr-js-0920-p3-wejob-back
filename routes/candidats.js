@@ -56,7 +56,7 @@ router.get('/', softCheckIsAdmin, async (req, res) => {
     SELECT
       user.id,${emailField}
       user_fiche.id AS user_fiche_id,
-      civility, lastname, firstname, job, description,
+      civility, lastname, firstname, job, keywords, description,
       picture, availability, mobility, isCheck
     FROM user
     LEFT JOIN user_fiche

@@ -31,7 +31,7 @@ router.post('/', async (req, res) => {
 
 router.get('/check', (req, res) => {
   res.json({
-    known: req.cookies.recognizeRecruiter,
+    status: !!req.cookies.recognizeRecruiter,
   });
 });
 
