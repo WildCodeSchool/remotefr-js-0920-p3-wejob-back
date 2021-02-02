@@ -15,6 +15,7 @@ const adminAppBuildDir =
   path.resolve(__dirname, process.env.ADMIN_APP_DIR, 'build');
 
 app.use(express.static('public'));
+app.use(express.static('uploads'));
 if (adminAppBuildDir) app.use(express.static(adminAppBuildDir));
 app.use(cookieParser());
 app.use(express.json());
