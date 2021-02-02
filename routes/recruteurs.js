@@ -30,7 +30,6 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/check', (req, res) => {
-  console.log(req.cookies);
   res.json({
     known: req.cookies.recognizeRecruiter,
   });
