@@ -3,7 +3,7 @@ GET http://localhost:5000/api/candidats
 
 ### Get 1 user (information from several tables)
 ### (id from user_fiche.id)
-GET http://localhost:5000/api/candidats/3
+GET http://localhost:5000/api/candidats/42
 
 ### Delete 1 user (id from user_fiche.id)
 DELETE http://localhost:5000/api/candidats/1
@@ -42,7 +42,7 @@ POST http://localhost:5000/api/candidats
 Content-Type: application/json
 
 {
-  "email":"test-newfezd-candidat@test.com"
+  "email":"emiliem@test.com"
 }
 
 ### Add a new admin (email + password)
@@ -69,4 +69,12 @@ Content-Type: application/json
 {
   "email":"test-admin@test.fr",
   "password":"12345"
+}
+
+### Forgot password
+POST http://localhost:5000/api/candidats/forgot-password
+Content-Type: application/json
+
+{
+  "email":"test-newfezd-candidat52@test.com"
 }
