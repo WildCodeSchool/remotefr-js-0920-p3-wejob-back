@@ -363,29 +363,30 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
     await pool.query(`DELETE FROM user_language WHERE user_id=?`, [
       candidatToUpdateId,
     ]);
-    const insertedLangValues = insertedLanguage.map((langue) => [
-      candidatToUpdateId,
-      langue.id,
-    ]);
-    if (insertedLangValues.length > 0)
+    if (insertedLanguage && insertedLanguage.length > 0) {
+      const insertedLangValues = insertedLanguage.map((langue) => [
+        candidatToUpdateId,
+        langue.id,
+      ]);
       await pool.query(
         `INSERT INTO user_language(user_id, language_id) VALUES ?`,
         [insertedLangValues],
       );
-
+    }
     const insertedSectors = req.body.sector_of_activity;
-    await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [
-      candidatToUpdateId,
-    ]);
-    const insertedSectorValues = insertedSectors.map((sector) => [
-      candidatToUpdateId,
-      sector.id,
-    ]);
-    if (insertedSectorValues.length > 0)
+    if (insertedSectors && insertedSectors.length > 0) {
+      await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [
+        candidatToUpdateId,
+      ]);
+      const insertedSectorValues = insertedSectors.map((sector) => [
+        candidatToUpdateId,
+        sector.id,
+      ]);
       await pool.query(
         `INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`,
         [insertedSectorValues],
       );
+    }
 
     return res.status(204).json(candidatToUpdateId);
   } catch (error) {
