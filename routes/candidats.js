@@ -301,13 +301,13 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       cv1,
       cv2,
       job,
+      keywords,
       linkedin,
       youtube,
       picture,
       availability,
       mobility,
       years_of_experiment,
-      isCheck,
       update_at,
       isOpen_to_formation,
     } = req.body;
@@ -315,7 +315,8 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
     if (!['Monsieur', 'Madame'].includes(civility)) return res.sendStatus(400);
 
     const isAdmin = req.user && req.user.isAdmin;
-    if (!isAdmin && isCheck) return res.sendStatus(403);
+    let { isCheck } = req.body;
+    if (!isAdmin) isCheck = 0;
 
     if (email)
       await pool.query(
@@ -328,9 +329,12 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
 
     await pool.query(
       `
-    UPDATE user_fiche
-    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?,
-    availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
+    UPDATE
+      user_fiche
+    SET
+      civility=?, lastname=?, firstname=?, description=?, diploma=?,
+      cv1=?, cv2=?, job=?, keywords = ?, linkedin=?, youtube=?, picture=?,
+      availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`,
       [
         civility,
@@ -341,6 +345,7 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
         cv1,
         cv2,
         job,
+        keywords,
         linkedin,
         youtube,
         picture,
