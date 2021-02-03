@@ -1,9 +1,15 @@
 const request = require('supertest');
 const { expect } = require('chai');
-const { resolve } = require('path');
+const { join, resolve } = require('path');
 const app = require('../../app');
 const { reset: resetDatabase } = require('../db');
 const { createUser, createAndLogin, getUserFiche } = require('../utils');
+const getUploadFilename = require('../../helpers/get-upload-filename');
+
+const assetsDir = resolve(__dirname, '..', 'assets');
+const files = {
+  picture: join(assetsDir, 'cat.png'),
+};
 
 function testUpdate(...args) {
   expect(args.length).to.equal(4, 'testUpdate expects 4 arguments');
@@ -21,21 +27,18 @@ function testUpdateFiles(...args) {
   const [userId, jwt, expectedStatus] = args;
   return request(app)
     .post(`/api/candidats/${userId}/files`)
-    .attach('picture', resolve(__dirname, '..', 'cat.png'))
+    .attach('picture', files.picture)
     .set('Accept', 'application/json')
     .set('Cookie', [`token=${jwt}`])
     .expect(expectedStatus);
 }
 
 describe('Candidate routes', () => {
+  beforeEach(resetDatabase);
   describe('PUT /api/auth/candidat/:id', () => {
-    beforeEach(resetDatabase);
-
     it('without auth', async () => {
       const { id } = await createUser('update1@wj.com');
-      return testUpdate(id, null, {}, 401).catch((err) =>
-        console.error('in test', err),
-      );
+      return testUpdate(id, null, {}, 401);
     });
 
     it('with wrong auth (other user)', async () => {
@@ -72,10 +75,12 @@ describe('Candidate routes', () => {
         firstname: 'foo',
         lastname: 'baz',
       };
+      const upload = { fieldname: 'picture', originalname: 'cat.png' };
       await testUpdate(id, token, payload, 204);
       await testUpdateFiles(id, token, {}, 204);
       const fiche = await getUserFiche(id);
-      expect(fiche.isCheck).to.equal(0);
+      const uploadFilename = getUploadFilename(upload, fiche);
+      expect(fiche.picture).to.equal(uploadFilename);
     });
   });
 });

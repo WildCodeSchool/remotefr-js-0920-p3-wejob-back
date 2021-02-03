@@ -26,7 +26,7 @@ const getUserFiche = async (userId) => {
     [userId],
   );
   const { user_id: id, id: ficheId, ...rest } = userFiche;
-  return { ...id, ficheId, ...rest };
+  return { id, ficheId, ...rest };
 };
 
 const createUser = async (email, isAdmin = false) => {

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index",
     "start:dev": "nodemon --ignore test",
-    "test": "cross-env NODE_ENV=test mocha --watch --timeout 5000 --file test/manage-pool.js test/**/*",
+    "test": "cross-env NODE_ENV=test mocha --exclude test/assets/* --watch --timeout 5000 --file test/manage-pool.js test/**/*",
     "lint": "eslint --ext .js --fix ."
   },
   "keywords": [],

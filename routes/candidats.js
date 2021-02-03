@@ -4,7 +4,6 @@
 /* eslint-disable object-shorthand */
 const express = require('express');
 const randtoken = require('rand-token');
-const slug = require('slug');
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
@@ -19,6 +18,7 @@ const {
   checkCanUpdateCandidat,
 } = require('../middlewares/auth');
 const getCandidateFields = require('../middlewares/get-candidate-fields');
+const getUploadFilename = require('../helpers/get-upload-filename');
 
 const router = express.Router();
 const removeFile = util.promisify(fs.unlink);
@@ -28,13 +28,8 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    const ext = file.originalname.split('.');
-    const { id, lastname, firstname } = req.candidate;
-    // Calcul d'un faux "hash" basé sur l'id, converti en base36
-    const hash = (3000000 + id).toString(36);
-    let ch = slug(`${hash} ${lastname} ${firstname} ${file.fieldname}`, '_');
-    ch += `.${ext[ext.length - 1]}`;
-    cb(null, ch);
+    const filename = getUploadFilename(file, req.candidate);
+    cb(null, filename);
   },
 });
 
