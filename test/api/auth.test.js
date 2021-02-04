@@ -13,12 +13,12 @@ function testLogin(requestBody, expectedStatus) {
 }
 
 describe('POST /api/auth/login', () => {
-  beforeEach(resetDatabase);
+  before(resetDatabase);
 
   it('send empty payload', () => testLogin({}, 422));
 
   it('send correct fields', async () => {
-    await createUser('foo3@bar.com');
-    return testLogin({ email: 'foo3@bar.com', password: 'Zyx765**' }, 200);
+    const { email } = await createUser();
+    return testLogin({ email, password: 'Zyx765**' }, 200);
   });
 });

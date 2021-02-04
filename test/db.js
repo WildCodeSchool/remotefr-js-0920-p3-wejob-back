@@ -17,12 +17,15 @@ function truncateTable(table) {
   return query(`TRUNCATE ${table}`);
 }
 
+const delay = () => new Promise((resolve) => setTimeout(resolve), 20);
+
 async function reset() {
   const tables = await getTables();
   await query('SET FOREIGN_KEY_CHECKS=0');
   await each(tables, truncateTable);
   await query('SET FOREIGN_KEY_CHECKS=0');
-  return Promise.resolve();
+  // Seems to help prevent duplicate keys (tests )
+  return delay();
 }
 
 module.exports = {

@@ -29,8 +29,17 @@ const getUserFiche = async (userId) => {
   return { id, ficheId, ...rest };
 };
 
-const createUser = async (email, isAdmin = false) => {
-  const password = await bcrypt.hash('Zyx765**', 10);
+const getNextId = (() => {
+  let nextId = 0;
+  return () => {
+    nextId += 1;
+    return nextId;
+  };
+})();
+
+const createUser = async (isAdmin = false) => {
+  const password = await bcrypt.hash('Zyx765**', 8);
+  const email = `foo${getNextId()}@b.ar`;
   const { insertId } = await query('INSERT INTO user SET ?', [
     { email, isAdmin, password },
   ]);
@@ -42,8 +51,8 @@ const login = async (email) => {
   return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: 5000 });
 };
 
-const createAndLogin = async (email, isAdmin = 0) => {
-  const user = await createUser(email, isAdmin);
+const createAndLogin = async (isAdmin = 0) => {
+  const user = await createUser(isAdmin);
   const token = await jwt.sign(user, process.env.JWT_SECRET, {
     expiresIn: 5000,
   });
