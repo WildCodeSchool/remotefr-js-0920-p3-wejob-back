@@ -16,7 +16,7 @@ module.exports = async (req, res, next) => {
     const [
       [candidat],
     ] = await pool.query(
-      'SELECT id, firstname, lastname FROM user_fiche WHERE user_id = ?',
+      'SELECT user_id AS id, firstname, lastname FROM user_fiche WHERE user_id = ?',
       [userId],
     );
     req.candidate = candidat;

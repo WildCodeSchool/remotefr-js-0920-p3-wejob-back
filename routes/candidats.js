@@ -4,7 +4,6 @@
 /* eslint-disable object-shorthand */
 const express = require('express');
 const randtoken = require('rand-token');
-const slug = require('slug');
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
@@ -19,6 +18,7 @@ const {
   checkCanUpdateCandidat,
 } = require('../middlewares/auth');
 const getCandidateFields = require('../middlewares/get-candidate-fields');
+const getUploadFilename = require('../helpers/get-upload-filename');
 
 const router = express.Router();
 const removeFile = util.promisify(fs.unlink);
@@ -28,13 +28,8 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    const ext = file.originalname.split('.');
-    const { id, lastname, firstname } = req.candidate;
-    // Calcul d'un faux "hash" basé sur l'id, converti en base36
-    const hash = (3000000 + id).toString(36);
-    let ch = slug(`${hash} ${lastname} ${firstname} ${file.fieldname}`, '_');
-    ch += `.${ext[ext.length - 1]}`;
-    cb(null, ch);
+    const filename = getUploadFilename(file, req.candidate);
+    cb(null, filename);
   },
 });
 
@@ -122,7 +117,6 @@ router.post('/forgot-password', async (req, res) => {
       'SELECT COUNT(email) FROM user WHERE email=?',
       [req.body.email],
     );
-    console.log(req.body.email, checkIfExists);
     if (checkIfExists === 0) {
       return res.status(500).json({
         error:
@@ -173,11 +167,9 @@ router.post(
 );
 
 router.post('/update-password', async (req, res) => {
-  console.log(req.body);
   try {
     const { token, password } = req.body;
     const hashedPassword = await hashPassword(password);
-    console.log(hashedPassword);
     const [
       status,
     ] = await pool.query(
@@ -298,16 +290,13 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       firstname,
       description,
       diploma,
-      cv1,
-      cv2,
       job,
+      keywords,
       linkedin,
       youtube,
-      picture,
       availability,
       mobility,
       years_of_experiment,
-      isCheck,
       update_at,
       isOpen_to_formation,
     } = req.body;
@@ -315,7 +304,8 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
     if (!['Monsieur', 'Madame'].includes(civility)) return res.sendStatus(400);
 
     const isAdmin = req.user && req.user.isAdmin;
-    if (!isAdmin && isCheck) return res.sendStatus(403);
+    let { isCheck } = req.body;
+    if (!isAdmin) isCheck = 0;
 
     if (email)
       await pool.query(
@@ -328,9 +318,12 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
 
     await pool.query(
       `
-    UPDATE user_fiche
-    SET civility=?, lastname=?, firstname=?, description=?, diploma=?, cv1=?, cv2=?, job=?, linkedin=?, youtube=?, picture=?,
-    availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
+    UPDATE
+      user_fiche
+    SET
+      civility=?, lastname=?, firstname=?, description=?, diploma=?,
+      job=?, keywords = ?, linkedin=?, youtube=?,
+      availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`,
       [
         civility,
@@ -338,12 +331,10 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
         firstname,
         description,
         diploma,
-        cv1,
-        cv2,
         job,
+        keywords,
         linkedin,
         youtube,
-        picture,
         availability,
         mobility,
         years_of_experiment,
@@ -358,29 +349,30 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
     await pool.query(`DELETE FROM user_language WHERE user_id=?`, [
       candidatToUpdateId,
     ]);
-    const insertedLangValues = insertedLanguage.map((langue) => [
-      candidatToUpdateId,
-      langue.id,
-    ]);
-    if (insertedLangValues.length > 0)
+    if (insertedLanguage && insertedLanguage.length > 0) {
+      const insertedLangValues = insertedLanguage.map((langue) => [
+        candidatToUpdateId,
+        langue.id,
+      ]);
       await pool.query(
         `INSERT INTO user_language(user_id, language_id) VALUES ?`,
         [insertedLangValues],
       );
-
+    }
     const insertedSectors = req.body.sector_of_activity;
-    await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [
-      candidatToUpdateId,
-    ]);
-    const insertedSectorValues = insertedSectors.map((sector) => [
-      candidatToUpdateId,
-      sector.id,
-    ]);
-    if (insertedSectorValues.length > 0)
+    if (insertedSectors && insertedSectors.length > 0) {
+      await pool.query(`DELETE FROM user_sector_of_activity WHERE user_id=?`, [
+        candidatToUpdateId,
+      ]);
+      const insertedSectorValues = insertedSectors.map((sector) => [
+        candidatToUpdateId,
+        sector.id,
+      ]);
       await pool.query(
         `INSERT INTO user_sector_of_activity(user_id, sector_of_activity_id) VALUES ?`,
         [insertedSectorValues],
       );
+    }
 
     return res.status(204).json(candidatToUpdateId);
   } catch (error) {
