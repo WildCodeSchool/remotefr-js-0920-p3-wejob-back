@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
     }
     const { visits: previousVisits } = recruiter[0];
     const visits = previousVisits
-      ? JSON.stringify([...previousVisits, Date.now()])
+      ? JSON.stringify([Date.now(), ...previousVisits])
       : JSON.stringify([Date.now()]);
     await pool.query('UPDATE recruiter SET visits = ? WHERE email = ?', [
       visits,
