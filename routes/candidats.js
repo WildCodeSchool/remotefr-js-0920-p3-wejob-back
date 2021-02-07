@@ -117,7 +117,6 @@ router.post('/forgot-password', async (req, res) => {
       'SELECT COUNT(email) FROM user WHERE email=?',
       [req.body.email],
     );
-    console.log(req.body.email, checkIfExists);
     if (checkIfExists === 0) {
       return res.status(500).json({
         error:
@@ -168,11 +167,9 @@ router.post(
 );
 
 router.post('/update-password', async (req, res) => {
-  console.log(req.body);
   try {
     const { token, password } = req.body;
     const hashedPassword = await hashPassword(password);
-    console.log(hashedPassword);
     const [
       status,
     ] = await pool.query(
@@ -293,13 +290,10 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       firstname,
       description,
       diploma,
-      cv1,
-      cv2,
       job,
       keywords,
       linkedin,
       youtube,
-      picture,
       availability,
       mobility,
       years_of_experiment,
@@ -328,7 +322,7 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
       user_fiche
     SET
       civility=?, lastname=?, firstname=?, description=?, diploma=?,
-      cv1=?, cv2=?, job=?, keywords = ?, linkedin=?, youtube=?, picture=?,
+      job=?, keywords = ?, linkedin=?, youtube=?,
       availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`,
       [
@@ -337,13 +331,10 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
         firstname,
         description,
         diploma,
-        cv1,
-        cv2,
         job,
         keywords,
         linkedin,
         youtube,
-        picture,
         availability,
         mobility,
         years_of_experiment,
