@@ -13,6 +13,20 @@ const extractJwtUser = async (req) => {
   }
 };
 
+const extractJwtRecruiter = async (req) => {
+  const { recruiter } = req.cookies;
+  if (!recruiter) return null;
+  try {
+    const { iat, exp, ...decoded } = await jwt.verify(
+      recruiter,
+      process.env.JWT_SECRET,
+    );
+    return decoded;
+  } catch (err) {
+    return null;
+  }
+};
+
 const checkJwtMw = async (req, res, next) => {
   const user = await extractJwtUser(req);
   if (!user) return res.sendStatus(401);
@@ -38,9 +52,31 @@ const checkCanUpdateCandidat = (req, res, next) =>
     return isAdmin || id === candidatId ? next() : res.sendStatus(403);
   });
 
+const checkCanReadCandidat = async (req, res, next) => {
+  const user = await extractJwtUser(req);
+  const candidatIdOrSlug = req.params.idOrSlug;
+  const candidatIdNum = Number(candidatIdOrSlug);
+  // to access a candidate by id you must
+  // be authentified, be either an admin or the owner of the user_fiche
+  const isAdmin = user && user.isAdmin;
+  const isOwner = user && user.id === candidatIdNum;
+  if (!Number.isNaN(candidatIdNum) && (isAdmin || isOwner)) {
+    req.user = user;
+    return next();
+  }
+  const recruiter = await extractJwtRecruiter(req);
+  // allow only access by slug for non-admin (recruiters/public app)
+  if (Number.isNaN(candidatIdNum) && recruiter) {
+    return next();
+  }
+  return res.sendStatus(403);
+};
+
 module.exports = {
   checkJwtMw,
   checkIsAdmin,
   softCheckIsAdmin,
   checkCanUpdateCandidat,
+  extractJwtRecruiter,
+  checkCanReadCandidat,
 };

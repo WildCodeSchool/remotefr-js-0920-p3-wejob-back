@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const sendRecruiterData = require('../services/send-recruiter-data');
 const pool = require('../pool');
-const { checkIsAdmin } = require('../middlewares/auth');
+const { checkIsAdmin, extractJwtRecruiter } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -61,15 +61,13 @@ router.get('/', checkIsAdmin, async (req, res) => {
 });
 
 router.get('/check', async (req, res) => {
-  const { recruiter } = req.cookies;
-  if (!recruiter) return res.json({ status: false });
   try {
-    await jwt.verify(recruiter, process.env.JWT_SECRET);
+    const recruiter = await extractJwtRecruiter(req);
+    if (!recruiter) throw new Error('Invalid recruiter JWT');
     return res.json({
       status: true,
     });
   } catch (err) {
-    console.error(err);
     res.clearCookie('recruiter');
     return res.json({ status: false });
   }

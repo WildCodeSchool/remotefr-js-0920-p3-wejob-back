@@ -17,6 +17,7 @@ const {
   checkIsAdmin,
   softCheckIsAdmin,
   checkCanUpdateCandidat,
+  checkCanReadCandidat,
 } = require('../middlewares/auth');
 const getCandidateFields = require('../middlewares/get-candidate-fields');
 const getUploadFilename = require('../helpers/get-upload-filename');
@@ -227,20 +228,16 @@ router.delete('/:id', checkIsAdmin, async (req, res) => {
  * uniquement si cookie[wejobjwt] present
  * sinon cookie recruiter present sinon 401
  */
-router.get('/:idOrSlug', softCheckIsAdmin, async (req, res) => {
+router.get('/:idOrSlug', checkCanReadCandidat, async (req, res) => {
   try {
-    const isAdmin = req.user && req.user.isAdmin;
     const candidatIdOrSlug = req.params.idOrSlug;
-    const candidatIdNum = Number(candidatIdOrSlug);
-    // allow only access by slug for non-admin (recruiters/public app)
-    if (!isAdmin && !Number.isNaN(candidatIdNum)) {
-      return res.sendStatus(403);
-    }
+    const canReadUnchecked = !!req.user;
+    const whereIsChecked = canReadUnchecked ? '1 = 1' : 'isCheck = 1';
     const [[fiche]] = await pool.query(
       `
     SELECT user.id, user_fiche.id AS user_fiche_id, email, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
-    FROM user LEFT JOIN user_fiche ON user.id = user_fiche.user_id WHERE user.id = ?`,
-      candidatIdOrSlug,
+    FROM user LEFT JOIN user_fiche ON user.id = user_fiche.user_id WHERE (user.id = ? OR user_fiche.slug = ?) AND ${whereIsChecked}`,
+      [candidatIdOrSlug, candidatIdOrSlug],
     );
     if (!fiche) {
       return res.sendStatus(404);
@@ -267,8 +264,9 @@ router.get('/:idOrSlug', softCheckIsAdmin, async (req, res) => {
     });
   }
 });
+
 /**
- * uniquemetn si cookie present et isAdmin true pour le champs isCheck
+ * uniquement si cookie present et isAdmin true pour le champs isCheck
  * si isAdmin false tout sauf isCheck
  * sinon 401
  */
