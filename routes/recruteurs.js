@@ -29,4 +29,10 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/check', (req, res) => {
+  res.json({
+    status: !!req.cookies.recognizeRecruiter,
+  });
+});
+
 module.exports = router;
