@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const util = require('util');
 const multer = require('multer');
+const slug = require('slug');
 const sendToken = require('../services/send-token');
 const sendTokenForgotPwd = require('../services/send-token-forgot-pwd');
 const hashPassword = require('./hash-password');
@@ -44,14 +45,16 @@ const upload = multer({
 router.get('/', softCheckIsAdmin, async (req, res) => {
   const isAdmin = req.user && req.user.isAdmin;
   const where = isAdmin ? '1 = 1' : 'user_fiche.isCheck = 1';
-  const emailField = isAdmin ? 'user.email,' : '';
+  const fields = isAdmin
+    ? 'lastname,user.email'
+    : 'SUBSTR(lastname, 1, 1) AS lastname';
 
   try {
     const [fiches] = await pool.query(`
     SELECT
-      user.id,${emailField}
+      user.id,slug,${fields},
       user_fiche.id AS user_fiche_id,
-      civility, lastname, firstname, job, keywords, description,
+      civility, firstname, job, keywords, description,
       picture, availability, mobility, isCheck
     FROM user
     LEFT JOIN user_fiche
@@ -192,7 +195,7 @@ router.post('/update-password', async (req, res) => {
 /**
  * uniquemetn si cookie present et isAdmin true sinon 401
  */
-router.delete('/:id', checkCanUpdateCandidat, async (req, res) => {
+router.delete('/:id', checkIsAdmin, async (req, res) => {
   try {
     const [
       userInfo,
@@ -222,20 +225,27 @@ router.delete('/:id', checkCanUpdateCandidat, async (req, res) => {
 
 /**
  * uniquement si cookie[wejobjwt] present
- * sinon cookie recognizeRecruiter present sinon 401
+ * sinon cookie recruiter present sinon 401
  */
-router.get('/:id', async (req, res) => {
+router.get('/:idOrSlug', softCheckIsAdmin, async (req, res) => {
   try {
-    const candidatId = req.params.id;
+    const isAdmin = req.user && req.user.isAdmin;
+    const candidatIdOrSlug = req.params.idOrSlug;
+    const candidatIdNum = Number(candidatIdOrSlug);
+    // allow only access by slug for non-admin (recruiters/public app)
+    if (!isAdmin && !Number.isNaN(candidatIdNum)) {
+      return res.sendStatus(403);
+    }
     const [[fiche]] = await pool.query(
       `
     SELECT user.id, user_fiche.id AS user_fiche_id, email, civility, lastname, firstname, description, diploma, cv1, cv2, job, keywords, linkedin, youtube, picture, availability, mobility, years_of_experiment, isCheck, create_at, update_at, isOpen_to_formation
     FROM user LEFT JOIN user_fiche ON user.id = user_fiche.user_id WHERE user.id = ?`,
-      candidatId,
+      candidatIdOrSlug,
     );
     if (!fiche) {
       return res.sendStatus(404);
     }
+    const candidatId = fiche.id;
     const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id WHERE ul.user_id = ?`,
       candidatId,
@@ -303,6 +313,12 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
 
     if (!['Monsieur', 'Madame'].includes(civility)) return res.sendStatus(400);
 
+    // eslint-disable-next-line no-restricted-properties
+    const id36 = (candidatToUpdateId + Math.pow(36, 3)).toString(36);
+    const slugBase =
+      firstname && lastname ? slug(`${firstname} ${lastname}`) : 'candidat';
+    const idSlug = `${id36}-${slugBase}`;
+
     const isAdmin = req.user && req.user.isAdmin;
     let { isCheck } = req.body;
     if (!isAdmin) isCheck = 0;
@@ -321,11 +337,12 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
     UPDATE
       user_fiche
     SET
-      civility=?, lastname=?, firstname=?, description=?, diploma=?,
+      slug=?, civility=?, lastname=?, firstname=?, description=?, diploma=?,
       job=?, keywords = ?, linkedin=?, youtube=?,
       availability=?, mobility=?, years_of_experiment=?, isCheck=?, update_at=?, isOpen_to_formation=?
     WHERE id = ?`,
       [
+        idSlug,
         civility,
         lastname,
         firstname,
