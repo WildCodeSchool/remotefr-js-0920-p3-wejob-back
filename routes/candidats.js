@@ -314,7 +314,9 @@ router.put('/:id', checkCanUpdateCandidat, async (req, res) => {
     // eslint-disable-next-line no-restricted-properties
     const id36 = (candidatToUpdateId + Math.pow(36, 3)).toString(36);
     const slugBase =
-      firstname && lastname ? slug(`${firstname} ${lastname}`) : 'candidat';
+      firstname && lastname
+        ? slug(`${firstname} ${lastname.substr(0, 1)}`)
+        : 'candidat';
     const idSlug = `${id36}-${slugBase}`;
 
     const isAdmin = req.user && req.user.isAdmin;
