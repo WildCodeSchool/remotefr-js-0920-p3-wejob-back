@@ -105,6 +105,7 @@ describe('Candidate routes', () => {
       await testUpdate(id, token, payload, 204);
       await testUpdateFiles(id, token, ['cv1', 'cv2', 'picture'], 204);
       await testUpdateFiles(id, token, [], 204);
+      await testUpdate(id, token, payload, 204);
       const fiche = await getUserFiche(id);
       const uploadImgFname = getUploadFilename(uploadImg, fiche);
       const uploadCv1Fname = getUploadFilename(uploadCv1, fiche);
