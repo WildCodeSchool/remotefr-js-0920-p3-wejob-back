@@ -60,7 +60,7 @@ router.get('/', softCheckIsAdmin, async (req, res) => {
     FROM user
     LEFT JOIN user_fiche
     ON user.id = user_fiche.user_id
-    WHERE ${where}`);
+    WHERE user.isAdmin = 0 AND ${where}`);
     const [language] = await pool.query(
       `SELECT l.id AS id_lang, l.language AS lang, ul.user_id AS user_id FROM language l JOIN user_language ul ON ul.language_id=l.id`,
     );
