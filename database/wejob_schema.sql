@@ -90,6 +90,7 @@ DROP TABLE IF EXISTS `user_fiche`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `user_fiche` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `civility` enum('Madame','Monsieur') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `lastname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `firstname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,

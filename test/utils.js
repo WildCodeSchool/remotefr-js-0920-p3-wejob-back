@@ -59,9 +59,18 @@ const createAndLogin = async (isAdmin = 0) => {
   return { ...user, token };
 };
 
+const recruiterLogin = async () => {
+  const email = `rec${getNextId()}@b.ar`;
+  const token = await jwt.sign({ email }, process.env.JWT_SECRET, {
+    expiresIn: 5000,
+  });
+  return { email, token };
+};
+
 module.exports = {
   createUser,
   login,
   createAndLogin,
   getUserFiche,
+  recruiterLogin,
 };

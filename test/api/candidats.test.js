@@ -2,8 +2,13 @@ const request = require('supertest');
 const { expect } = require('chai');
 const { join, resolve } = require('path');
 const app = require('../../app');
-const { reset: resetDatabase } = require('../db');
-const { createUser, createAndLogin, getUserFiche } = require('../utils');
+const { reset: resetDatabase, query } = require('../db');
+const {
+  createUser,
+  createAndLogin,
+  getUserFiche,
+  recruiterLogin,
+} = require('../utils');
 const getUploadFilename = require('../../helpers/get-upload-filename');
 
 const assetsDir = resolve(__dirname, '..', '..', 'test-assets');
@@ -23,6 +28,20 @@ function testUpdate(...args) {
   if (jwt) req.set('Cookie', [`token=${jwt}`]);
   return req.expect(expectedStatus);
 }
+
+function testGet(...args) {
+  expect(args.length).to.equal(3, 'testGet expects 3 arguments');
+  const [idOrSlug, jwt, expectedStatus] = args;
+  const req = request(app)
+    .get(`/api/candidats/${idOrSlug}`)
+    .set('Accept', 'application/json');
+  if (jwt) {
+    const { key, val } = jwt;
+    req.set('Cookie', [`${key}=${val}`]);
+  }
+  return req.expect(expectedStatus);
+}
+
 function testUpdateFiles(...args) {
   expect(args.length).to.equal(4, 'testUpdateFiles expects 4 arguments');
   const [userId, jwt, fileFields, expectedStatus] = args;
@@ -113,6 +132,66 @@ describe('Candidate routes', () => {
       expect(fiche.picture).to.equal(uploadImgFname);
       expect(fiche.cv1).to.equal(uploadCv1Fname);
       expect(fiche.cv2).to.equal(uploadCv2Fname);
+    });
+  });
+
+  describe('GET /api/candidats/:id', () => {
+    it('without auth', async () => {
+      const { id } = await createUser();
+      return testGet(id, null, 403);
+    });
+
+    it('with admin auth', async () => {
+      const { token: token1 } = await createAndLogin(true);
+      const { id: id2 } = await createAndLogin();
+      return testGet(id2, { key: 'token', val: token1 }, 200);
+    });
+
+    it('with wrong auth (other user)', async () => {
+      const { token: token1 } = await createAndLogin();
+      const { id: id2 } = await createAndLogin();
+      return testGet(id2, { key: 'token', val: token1 }, 403);
+    });
+
+    it('with correct auth (my user_fiche)', async () => {
+      const { id, token } = await createAndLogin();
+      return testGet(id, { key: 'token', val: token }, 200);
+    });
+
+    it('with recruiter auth, by id', async () => {
+      const { id } = await createAndLogin();
+      const { token } = await recruiterLogin();
+      return testGet(id, { key: 'recruiter', val: token }, 403);
+    });
+
+    it('with recruiter auth, by slug, unchecked', async () => {
+      const { id, token } = await createAndLogin();
+      // user updates his data
+      const payload = {
+        civility: 'Monsieur',
+        firstname: 'Rick',
+        lastname: "O'Connell",
+      };
+      await testUpdate(id, token, payload, 204);
+      const { slug } = await getUserFiche(id);
+      const { token: tokenRec } = await recruiterLogin();
+      return testGet(slug, { key: 'recruiter', val: tokenRec }, 404);
+    });
+
+    it('with recruiter auth, by slug', async () => {
+      const { id, token } = await createAndLogin();
+      // user updates his data
+      const payload = {
+        civility: 'Monsieur',
+        firstname: 'Rick',
+        lastname: "O'Connell",
+      };
+      await testUpdate(id, token, payload, 204);
+      // admin validates user
+      await query('UPDATE user_fiche SET isCheck = 1 WHERE user_id = ?', [id]);
+      const { slug } = await getUserFiche(id);
+      const { token: tokenRec } = await recruiterLogin();
+      return testGet(slug, { key: 'recruiter', val: tokenRec }, 200);
     });
   });
 });
